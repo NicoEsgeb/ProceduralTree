@@ -1,0 +1,44 @@
+{
+  "name": "clicktree",
+  "version": "0.1.0",
+  "description": "ClickTree Electron app to grow procedural trees on click.",
+  "license": "MIT",
+  "main": "main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "lint": "echo 'No lint configured.'"
+  },
+  "build": {
+    "appId": "com.clicktree.app",
+    "productName": "ClickTree",
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "renderer.js",
+      "styles.css",
+      "vendor/**/*"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    },
+    "mac": {
+      "category": "public.app-category.graphics-design"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"]
+    },
+    "win": {
+      "target": ["nsis"]
+    }
+  },
+  "dependencies": {
+    "tweakpane": "^4.0.3"
+  },
+  "devDependencies": {
+    "electron": "^29.4.0",
+    "electron-builder": "^24.6.4"
+  }
+}
