@@ -38,6 +38,7 @@ const controls = {
   gradientEnd: document.querySelector('#gradient-end-input'),
   seed: document.querySelector('#seed-input'),
   autoSeed: document.querySelector('#auto-seed-input'),
+  forestMode: document.querySelector('#forest-mode-input'),
   solidGroup: document.querySelector('#solid-color-group'),
   gradientGroups: document.querySelectorAll('.gradient-group'),
   redrawBtn: document.querySelector('#redraw-btn'),
@@ -104,6 +105,8 @@ const settings = {
 
 let autoRandomSeed = true;
 let lastClick = null;
+let forestMode = false;
+let forestTrees = []; // Array to store completed trees in forest mode
 
 const tree = new window.TreePlugin({
   container: canvasContainer,
@@ -152,10 +155,232 @@ function applySettingsToTree() {
 
 function drawTreeAt(x, y) {
   applySettingsToTree();
+  
+  // Store the original startTree function
+  const originalStartTree = tree.startTree.bind(tree);
+  
+  // Override startTree to not clear canvas in forest mode
+  tree.startTree = function(posX, posY) {
+    if (posX === undefined || posY === undefined) {
+      var fallback = this.lastOrigin || this.origin || { x: this.stageWidth / 2, y: this.stageHeight };
+      posX = fallback.x;
+      posY = fallback.y;
+    }
+    // Cancel any ongoing animation if exists
+    if (this.animation) cancelAnimationFrame(this.animation);
+    
+    // Only clear canvas if not in forest mode
+    if (!forestMode) {
+      this.clearCanvas();
+    }
+    
+    if (this.seed !== undefined) {
+      // Reset or regenerate the deterministic random sequence when needed
+      if (this.currentSeed !== this.seed || !this.randSeq) {
+        this.setSeed(this.seed);
+      } else {
+        this.randCounter = 0;
+      }
+    }
+    // Create an array of branches for each depth level (size: fullDepth)
+    this.branches = Array.from({ length: this.fullDepth }, function () { return []; });
+    this.currentDepth = 0;
+    this.treeTop = Infinity;
+    this.treeX = posX;
+    this.treeY = posY;
+    this.lastOrigin = { x: posX, y: posY };
+    // Limit the tree scale based on stage height and fullDepth
+    var maxScale = this.stageHeight / (13 * this.fullDepth);
+    if (this.treeScale > maxScale) {
+      this.treeScale = maxScale;
+    }
+    // Generate the complete tree structure based on fullDepth (deterministic using seed)
+    this.createBranch(this.treeX, this.treeY, -90, 0);
+    // Initialize animation frames for each branch to 0
+    for (var d = 0; d < this.fullDepth; d++) {
+      for (var k = 0; k < this.branches[d].length; k++) {
+        this.branches[d][k].cntFrame = 0;
+      }
+    }
+    this.animate();
+  };
+  
+  // Override the tree's animate function to include forest trees
+  tree.animate = function() {
+    // Only clear canvas if not in forest mode
+    if (!forestMode) {
+      this.clearCanvas();
+    }
+    
+    // Draw all forest trees first (background)
+    if (forestMode) {
+      drawForestTrees();
+    }
+    
+    // Then draw the current growing tree (foreground)
+    // Draw already completed branches (from root up to currentDepth-1) fully
+    for (var d = 0; d < this.currentDepth; d++) {
+      if (d >= this.depth) break;
+      for (var k = 0; k < this.branches[d].length; k++) {
+        var branch = this.branches[d][k];
+        this.ctx.beginPath();
+        this.ctx.moveTo(branch.startX, branch.startY);
+        this.ctx.lineTo(branch.endX, branch.endY);
+        this.ctx.lineWidth = branch.lineWidth;
+        this.ctx.strokeStyle = this.getBranchStrokeStyle(this.ctx, branch);
+        this.ctx.stroke();
+        this.ctx.closePath();
+      }
+    }
+
+    var stillGrowing = false;
+    // Animate the branches at the current depth level
+    if (this.currentDepth < this.depth) {
+      var currentDone = true;
+      for (var k = 0; k < this.branches[this.currentDepth].length; k++) {
+        var branch = this.branches[this.currentDepth][k];
+        if (branch.cntFrame < branch.frame) {
+          branch.draw(this.ctx, this.growthSpeed);
+          stillGrowing = true;
+          currentDone = false;
+        } else {
+          // If the branch is fully drawn, draw it as a complete line
+          this.ctx.beginPath();
+          this.ctx.moveTo(branch.startX, branch.startY);
+          this.ctx.lineTo(branch.endX, branch.endY);
+          this.ctx.lineWidth = branch.lineWidth;
+          this.ctx.strokeStyle = this.getBranchStrokeStyle(this.ctx, branch);
+          this.ctx.stroke();
+          this.ctx.closePath();
+        }
+      }
+      // If all branches at the current depth are complete, move to the next depth level
+      if (currentDone) {
+        this.currentDepth++;
+        stillGrowing = true;
+      }
+    }
+
+    // Continue the animation if there are still branches growing
+    if (stillGrowing) {
+      this.animation = requestAnimationFrame(this.animate.bind(this));
+    } else {
+      // Tree is fully grown, store it if in forest mode
+      if (forestMode) {
+        storeCompletedTree();
+      }
+      cancelAnimationFrame(this.animation);
+    }
+  };
+  
   tree.startTree(x, y);
 }
 
+function storeCompletedTree() {
+  if (!forestMode) return;
+  
+  // Create a snapshot of the current tree data
+  const completedTree = {
+    branches: JSON.parse(JSON.stringify(tree.branches)),
+    treeX: tree.treeX,
+    treeY: tree.treeY,
+    treeTop: tree.treeTop,
+    depth: tree.depth,
+    treeScale: tree.treeScale,
+    branchWidth: tree.branchWidth,
+    colorMode: tree.colorMode,
+    color: tree.color,
+    gradientStart: tree.gradientStart,
+    gradientEnd: tree.gradientEnd,
+    lightDirection: tree.lightDirection,
+    lightIntensity: tree.lightIntensity,
+    seed: tree.seed
+  };
+  
+  forestTrees.push(completedTree);
+}
+
+function drawForestTrees() {
+  if (!forestMode || forestTrees.length === 0) return;
+  
+  forestTrees.forEach(completedTree => {
+    // Temporarily save current tree state
+    const originalBranches = tree.branches;
+    const originalTreeX = tree.treeX;
+    const originalTreeY = tree.treeY;
+    const originalTreeTop = tree.treeTop;
+    const originalDepth = tree.depth;
+    const originalTreeScale = tree.treeScale;
+    const originalBranchWidth = tree.branchWidth;
+    const originalColorMode = tree.colorMode;
+    const originalColor = tree.color;
+    const originalGradientStart = tree.gradientStart;
+    const originalGradientEnd = tree.gradientEnd;
+    const originalLightDirection = tree.lightDirection;
+    const originalLightIntensity = tree.lightIntensity;
+    const originalSeed = tree.seed;
+    
+    // Apply stored tree properties
+    tree.branches = completedTree.branches;
+    tree.treeX = completedTree.treeX;
+    tree.treeY = completedTree.treeY;
+    tree.treeTop = completedTree.treeTop;
+    tree.depth = completedTree.depth;
+    tree.treeScale = completedTree.treeScale;
+    tree.branchWidth = completedTree.branchWidth;
+    tree.colorMode = completedTree.colorMode;
+    tree.color = completedTree.color;
+    tree.gradientStart = completedTree.gradientStart;
+    tree.gradientEnd = completedTree.gradientEnd;
+    tree.lightDirection = completedTree.lightDirection;
+    tree.lightIntensity = completedTree.lightIntensity;
+    tree.seed = completedTree.seed;
+    
+    // Draw all branches of the completed tree
+    for (let d = 0; d < tree.depth && d < tree.branches.length; d++) {
+      for (let k = 0; k < tree.branches[d].length; k++) {
+        const branch = tree.branches[d][k];
+        tree.ctx.beginPath();
+        tree.ctx.moveTo(branch.startX, branch.startY);
+        tree.ctx.lineTo(branch.endX, branch.endY);
+        tree.ctx.lineWidth = branch.lineWidth;
+        tree.ctx.strokeStyle = tree.getBranchStrokeStyle(tree.ctx, branch);
+        tree.ctx.stroke();
+        tree.ctx.closePath();
+      }
+    }
+    
+    // Restore original tree state
+    tree.branches = originalBranches;
+    tree.treeX = originalTreeX;
+    tree.treeY = originalTreeY;
+    tree.treeTop = originalTreeTop;
+    tree.depth = originalDepth;
+    tree.treeScale = originalTreeScale;
+    tree.branchWidth = originalBranchWidth;
+    tree.colorMode = originalColorMode;
+    tree.color = originalColor;
+    tree.gradientStart = originalGradientStart;
+    tree.gradientEnd = originalGradientEnd;
+    tree.lightDirection = originalLightDirection;
+    tree.lightIntensity = originalLightIntensity;
+    tree.seed = originalSeed;
+  });
+}
+
 function redrawFromLastPoint() {
+  // Cancel any ongoing animation
+  if (tree.animation) {
+    cancelAnimationFrame(tree.animation);
+    tree.animation = null;
+  }
+  
+  // Clear canvas and forest trees if not in forest mode
+  if (!forestMode) {
+    tree.clearCanvas();
+    forestTrees = [];
+  }
+  
   if (lastClick) {
     drawTreeAt(lastClick.x, lastClick.y);
   } else {
@@ -192,6 +417,7 @@ function refreshControls() {
   controls.gradientEnd.value = sanitizeColor(settings.gradientEnd, '#228b22');
   controls.seed.value = settings.seed ?? '';
   controls.autoSeed.checked = autoRandomSeed;
+  controls.forestMode.checked = forestMode;
   updateColorInputsVisibility();
 }
 
@@ -327,6 +553,14 @@ controls.autoSeed.addEventListener('change', () => {
   autoRandomSeed = controls.autoSeed.checked;
 });
 
+controls.forestMode.addEventListener('change', () => {
+  forestMode = controls.forestMode.checked;
+  if (!forestMode) {
+    // Clear forest trees when exiting forest mode
+    forestTrees = [];
+  }
+});
+
 controls.redrawBtn.addEventListener('click', () => redrawFromLastPoint());
 controls.randomizeTreeBtn.addEventListener('click', () => randomizeTreeSettings());
 controls.randomizeSeedBtn.addEventListener('click', () => randomizeSeed());
@@ -337,6 +571,7 @@ function clearCanvas() {
   }
   tree.clearCanvas();
   lastClick = null;
+  forestTrees = []; // Clear forest trees when clearing canvas
 }
 
 controls.clearBtn.addEventListener('click', () => {
@@ -352,6 +587,13 @@ canvas.addEventListener('mousedown', (evt) => {
     setSeedValue(randomInt(1, 999_999_999), { refresh: true, redraw: false });
   }
   lastClick = pos;
+  
+  // Cancel any ongoing animation
+  if (tree.animation) {
+    cancelAnimationFrame(tree.animation);
+    tree.animation = null;
+  }
+  
   drawTreeAt(pos.x, pos.y);
 });
 
