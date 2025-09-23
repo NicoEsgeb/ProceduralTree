@@ -23,6 +23,7 @@ This wraps the app with `electron-builder` and produces platform-specific binari
 
 - **Click to grow**: click (or Redraw) to generate a deterministic tree at the selected point.
 - **Parameters**: depth, growth speed, tree scale, branch width, color mode (solid or gradient), seed and colors.
+- **Lighting**: set a light direction so gradient colors mimic highlights vs. shadows.
 - **Randomize Tree**: shuffles all parameters (depth, scale, colors, seed) in one click.
 - **Clear**: stops any animation and clears the canvas.
 - **Presets**: Save/Load buttons (and File menu items) read/write JSON configuration files via the native dialog.

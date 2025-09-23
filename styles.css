@@ -95,6 +95,12 @@ body {
   height: 36px;
 }
 
+.control-group input[type='range'] {
+  padding: 0;
+  height: 6px;
+  accent-color: #facc15;
+}
+
 .control-group.checkbox {
   flex-direction: row;
   align-items: center;

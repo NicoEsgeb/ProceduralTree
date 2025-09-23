@@ -7,14 +7,18 @@ const defaultSettings = {
   color: '#2c7a2c',
   gradientStart: '#8b4513',
   gradientEnd: '#228b22',
-  seed: '1337'
+  seed: '1337',
+  lightDirection: 315,
+  lightIntensity: 0.5
 };
 
 const randomRanges = {
   depth: [3, 11],
   growthSpeed: [0.6, 4.5],
   treeScale: [0.5, 3.5],
-  branchWidth: [0.3, 4]
+  branchWidth: [0.3, 4],
+  lightDirection: [0, 359],
+  lightIntensity: [0.1, 1]
 };
 
 const canvasContainer = document.querySelector('#canvas-container');
@@ -26,6 +30,8 @@ const controls = {
   growthSpeed: document.querySelector('#growth-speed-input'),
   treeScale: document.querySelector('#tree-scale-input'),
   branchWidth: document.querySelector('#branch-width-input'),
+  lightDirection: document.querySelector('#light-direction-input'),
+  lightIntensity: document.querySelector('#light-intensity-input'),
   colorMode: document.querySelector('#color-mode-input'),
   color: document.querySelector('#color-input'),
   gradientStart: document.querySelector('#gradient-start-input'),
@@ -86,7 +92,9 @@ function cloneSettings(src) {
     color: src.color,
     gradientStart: src.gradientStart,
     gradientEnd: src.gradientEnd,
-    seed: src.seed
+    seed: src.seed,
+    lightDirection: src.lightDirection,
+    lightIntensity: src.lightIntensity
   };
 }
 
@@ -107,7 +115,9 @@ const tree = new window.TreePlugin({
   color: settings.color,
   gradientStart: settings.gradientStart,
   gradientEnd: settings.gradientEnd,
-  seed: parseSeedValue(settings.seed)
+  seed: parseSeedValue(settings.seed),
+  lightDirection: settings.lightDirection,
+  lightIntensity: settings.lightIntensity
 });
 
 if (tree.animation) {
@@ -127,6 +137,16 @@ function applySettingsToTree() {
   tree.color = settings.color;
   tree.gradientStart = settings.gradientStart;
   tree.gradientEnd = settings.gradientEnd;
+  if (typeof tree.setLightDirection === 'function') {
+    tree.setLightDirection(settings.lightDirection);
+  } else {
+    tree.lightDirection = settings.lightDirection;
+  }
+  if (typeof tree.setLightIntensity === 'function') {
+    tree.setLightIntensity(settings.lightIntensity);
+  } else {
+    tree.lightIntensity = Math.min(1, Math.max(0, settings.lightIntensity));
+  }
   tree.setSeed(parseSeedValue(settings.seed));
 }
 
@@ -164,6 +184,8 @@ function refreshControls() {
   controls.growthSpeed.value = settings.growthSpeed;
   controls.treeScale.value = settings.treeScale;
   controls.branchWidth.value = settings.branchWidth;
+  controls.lightDirection.value = settings.lightDirection;
+  controls.lightIntensity.value = settings.lightIntensity;
   controls.colorMode.value = settings.colorMode;
   controls.color.value = sanitizeColor(settings.color, '#2c7a2c');
   controls.gradientStart.value = sanitizeColor(settings.gradientStart, '#8b4513');
@@ -194,6 +216,8 @@ function randomizeTreeSettings() {
   settings.growthSpeed = clamp(randomFloat(randomRanges.growthSpeed[0], randomRanges.growthSpeed[1]), 0.5, 5);
   settings.treeScale = clamp(randomFloat(randomRanges.treeScale[0], randomRanges.treeScale[1]), 0.2, 4);
   settings.branchWidth = clamp(randomFloat(randomRanges.branchWidth[0], randomRanges.branchWidth[1]), 0.2, 5);
+  settings.lightDirection = clamp(randomInt(randomRanges.lightDirection[0], randomRanges.lightDirection[1]), 0, 359);
+  settings.lightIntensity = clamp(randomFloat(randomRanges.lightIntensity[0], randomRanges.lightIntensity[1]), 0, 1);
 
   const useGradient = Math.random() < 0.7;
   settings.colorMode = useGradient ? 'gradient' : 'solid';
@@ -214,6 +238,12 @@ function randomizeTreeSettings() {
 
   randomizeSeed({ redraw: false });
   refreshControls();
+  if (typeof tree.setLightDirection === 'function') {
+    tree.setLightDirection(settings.lightDirection);
+  }
+  if (typeof tree.setLightIntensity === 'function') {
+    tree.setLightIntensity(settings.lightIntensity);
+  }
   redrawFromLastPoint();
 }
 
@@ -222,6 +252,16 @@ function syncSettingsFromInputs() {
   settings.growthSpeed = clamp(Number(controls.growthSpeed.value) || defaultSettings.growthSpeed, 0.5, 5);
   settings.treeScale = clamp(Number(controls.treeScale.value) || defaultSettings.treeScale, 0.2, 4);
   settings.branchWidth = clamp(Number(controls.branchWidth.value) || defaultSettings.branchWidth, 0.2, 5);
+  const rawDirection = Number(controls.lightDirection.value);
+  if (Number.isFinite(rawDirection)) {
+    let normalized = rawDirection % 360;
+    if (normalized < 0) normalized += 360;
+    settings.lightDirection = normalized;
+  }
+  const rawIntensity = Number(controls.lightIntensity.value);
+  if (Number.isFinite(rawIntensity)) {
+    settings.lightIntensity = clamp(rawIntensity, 0, 1);
+  }
   settings.colorMode = controls.colorMode.value === 'solid' ? 'solid' : 'gradient';
   settings.color = sanitizeColor(controls.color.value, settings.color);
   settings.gradientStart = sanitizeColor(controls.gradientStart.value, settings.gradientStart);
@@ -245,6 +285,20 @@ controls.treeScale.addEventListener('change', () => {
 });
 controls.branchWidth.addEventListener('change', () => {
   syncSettingsFromInputs();
+  if (lastClick) redrawFromLastPoint();
+});
+controls.lightDirection.addEventListener('change', () => {
+  syncSettingsFromInputs();
+  if (typeof tree.setLightDirection === 'function') {
+    tree.setLightDirection(settings.lightDirection);
+  }
+  if (lastClick) redrawFromLastPoint();
+});
+controls.lightIntensity.addEventListener('input', () => {
+  syncSettingsFromInputs();
+  if (typeof tree.setLightIntensity === 'function') {
+    tree.setLightIntensity(settings.lightIntensity);
+  }
   if (lastClick) redrawFromLastPoint();
 });
 controls.colorMode.addEventListener('change', () => {
@@ -340,6 +394,20 @@ function applyPreset(preset) {
   }
   if (preset.branchWidth !== undefined) {
     settings.branchWidth = clamp(Number(preset.branchWidth), 0.2, 5);
+  }
+  if (preset.lightIntensity !== undefined) {
+    const numericIntensity = Number(preset.lightIntensity);
+    if (Number.isFinite(numericIntensity)) {
+      settings.lightIntensity = clamp(numericIntensity, 0, 1);
+    }
+  }
+  if (preset.lightDirection !== undefined) {
+    const numericDir = Number(preset.lightDirection);
+    if (Number.isFinite(numericDir)) {
+      let normalized = numericDir % 360;
+      if (normalized < 0) normalized += 360;
+      settings.lightDirection = normalized;
+    }
   }
   if (preset.colorMode !== undefined) {
     settings.colorMode = preset.colorMode === 'solid' ? 'solid' : 'gradient';

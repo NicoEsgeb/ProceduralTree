@@ -15,6 +15,16 @@
     this.color = options.color || "#000";
     this.gradientStart = options.gradientStart || "#8B4513";
     this.gradientEnd = options.gradientEnd || "#228B22";
+    var initialDirection = options.lightDirection !== undefined ? Number(options.lightDirection) : 315;
+    if (!Number.isFinite(initialDirection)) {
+      initialDirection = 315;
+    }
+    this.lightDirection = ((initialDirection % 360) + 360) % 360;
+    var providedIntensity = options.lightIntensity !== undefined ? Number(options.lightIntensity) : 0.5;
+    if (!Number.isFinite(providedIntensity)) {
+      providedIntensity = 0.5;
+    }
+    this.lightIntensity = Math.min(1, Math.max(0, providedIntensity));
     this.seed = undefined;
     this.randSeq = null;
     this.randCounter = 0;
@@ -25,6 +35,7 @@
     } : null;
     this.lastOrigin = null;
     this.setSeed(options.seed);
+    this.setLightDirection(this.lightDirection);
     this.canvas = document.createElement("canvas");
     this.container.appendChild(this.canvas);
     this.ctx = this.canvas.getContext("2d");
@@ -168,6 +179,8 @@
       gapX: (endX - startX) / 100,
       gapY: (endY - startY) / 100,
       plugin: this,
+      midX: (startX + endX) / 2,
+      midY: (startY + endY) / 2,
       draw: function (ctx, speed) {
         // Draw the branch gradually until it is fully drawn
         if (this.cntFrame < this.frame) {
@@ -178,15 +191,8 @@
           ctx.moveTo(this.startX, this.startY);
           ctx.lineTo(currX, currY);
           ctx.lineWidth = this.lineWidth;
-          // Set stroke style based on color mode (gradient or solid)
-          if (this.plugin.colorMode === "gradient") {
-            var grad = ctx.createLinearGradient(this.plugin.treeX, this.plugin.treeY, this.plugin.treeX, this.plugin.treeTop);
-            grad.addColorStop(0, this.plugin.gradientStart);
-            grad.addColorStop(1, this.plugin.gradientEnd);
-            ctx.strokeStyle = grad;
-          } else {
-            ctx.strokeStyle = this.plugin.color;
-          }
+          // Set stroke style based on light-aware gradient or solid color
+          ctx.strokeStyle = this.plugin.getBranchStrokeStyle(ctx, this);
           ctx.stroke();
           ctx.closePath();
           // Increment the frame counter based on growthSpeed
@@ -216,14 +222,7 @@
         this.ctx.moveTo(branch.startX, branch.startY);
         this.ctx.lineTo(branch.endX, branch.endY);
         this.ctx.lineWidth = branch.lineWidth;
-        if (this.colorMode === "gradient") {
-          var grad = this.ctx.createLinearGradient(this.treeX, this.treeY, this.treeX, this.treeTop);
-          grad.addColorStop(0, this.gradientStart);
-          grad.addColorStop(1, this.gradientEnd);
-          this.ctx.strokeStyle = grad;
-        } else {
-          this.ctx.strokeStyle = this.color;
-        }
+        this.ctx.strokeStyle = this.getBranchStrokeStyle(this.ctx, branch);
         this.ctx.stroke();
         this.ctx.closePath();
       }
@@ -245,14 +244,7 @@
           this.ctx.moveTo(branch.startX, branch.startY);
           this.ctx.lineTo(branch.endX, branch.endY);
           this.ctx.lineWidth = branch.lineWidth;
-          if (this.colorMode === "gradient") {
-            var grad = this.ctx.createLinearGradient(this.treeX, this.treeY, this.treeX, this.treeTop);
-            grad.addColorStop(0, this.gradientStart);
-            grad.addColorStop(1, this.gradientEnd);
-            this.ctx.strokeStyle = grad;
-          } else {
-            this.ctx.strokeStyle = this.color;
-          }
+          this.ctx.strokeStyle = this.getBranchStrokeStyle(this.ctx, branch);
           this.ctx.stroke();
           this.ctx.closePath();
         }
@@ -270,6 +262,121 @@
     } else {
       cancelAnimationFrame(this.animation);
     }
+  };
+
+  TreePlugin.prototype.clamp01 = function (value) {
+    if (!Number.isFinite(value)) return 0;
+    if (value < 0) return 0;
+    if (value > 1) return 1;
+    return value;
+  };
+
+  TreePlugin.prototype.setLightDirection = function (direction) {
+    var numeric = Number(direction);
+    if (!Number.isFinite(numeric)) return;
+    this.lightDirection = ((numeric % 360) + 360) % 360;
+  };
+
+  TreePlugin.prototype.setLightIntensity = function (intensity) {
+    this.lightIntensity = this.clamp01(Number(intensity));
+  };
+
+  TreePlugin.prototype.hexToRgb = function (hex) {
+    if (typeof hex !== "string") return null;
+    var normalized = hex.trim();
+    if (!/^#?[0-9a-fA-F]{6}$/.test(normalized)) return null;
+    if (normalized[0] === "#") {
+      normalized = normalized.slice(1);
+    }
+    var bigint = parseInt(normalized, 16);
+    return [
+      (bigint >> 16) & 255,
+      (bigint >> 8) & 255,
+      bigint & 255
+    ];
+  };
+
+  TreePlugin.prototype.rgbToHex = function (rgb) {
+    if (!rgb) return "#000000";
+    return "#" + rgb.map(function (value) {
+      var clamped = Math.max(0, Math.min(255, Math.round(value)));
+      return clamped.toString(16).padStart(2, "0");
+    }).join("");
+  };
+
+  TreePlugin.prototype.mixRgb = function (a, b, t) {
+    t = this.clamp01(t);
+    return [
+      a[0] + (b[0] - a[0]) * t,
+      a[1] + (b[1] - a[1]) * t,
+      a[2] + (b[2] - a[2]) * t
+    ];
+  };
+
+  TreePlugin.prototype.getColorAtY = function (y) {
+    var start = this.hexToRgb(this.gradientStart);
+    var end = this.hexToRgb(this.gradientEnd);
+    if (!start || !end) {
+      return start || end || [0, 0, 0];
+    }
+    if (!Number.isFinite(this.treeY) || !Number.isFinite(this.treeTop) || this.treeY === this.treeTop) {
+      return start.slice();
+    }
+    var ratio = (this.treeY - y) / (this.treeY - this.treeTop);
+    ratio = this.clamp01(ratio);
+    return this.mixRgb(start, end, ratio);
+  };
+
+  TreePlugin.prototype.getShadeFactor = function (branch) {
+    var angleRad = this.lightDirection * (Math.PI / 180);
+    var lightX = Math.cos(angleRad);
+    var lightY = Math.sin(angleRad);
+    var midX = branch.midX;
+    var midY = branch.midY;
+    var centerX = this.treeX;
+    var centerY;
+    if (Number.isFinite(this.treeTop)) {
+      centerY = (this.treeY + this.treeTop) / 2;
+    } else {
+      centerY = this.treeY;
+    }
+    var vecX = midX - centerX;
+    var vecY = midY - centerY;
+    var len = Math.sqrt(vecX * vecX + vecY * vecY);
+    if (len > 0) {
+      vecX /= len;
+      vecY /= len;
+    }
+    var dot = vecX * (-lightX) + vecY * (-lightY);
+    return this.clamp01((dot + 1) / 2);
+  };
+
+  TreePlugin.prototype.applyShading = function (rgb, shade) {
+    if (!rgb) return [0, 0, 0];
+    var intensity = this.lightIntensity;
+    var amount = (shade - 0.5) * 2 * intensity;
+    if (amount > 0) {
+      return this.mixRgb(rgb, [255, 255, 255], amount);
+    }
+    if (amount < 0) {
+      return this.mixRgb(rgb, [0, 0, 0], -amount);
+    }
+    return rgb.slice();
+  };
+
+  TreePlugin.prototype.getBranchStrokeStyle = function (ctx, branch) {
+    var shade = this.getShadeFactor(branch);
+    if (this.colorMode === "gradient") {
+      var startColor = this.applyShading(this.getColorAtY(branch.startY), shade);
+      var endColor = this.applyShading(this.getColorAtY(branch.endY), shade);
+      var gradient = ctx.createLinearGradient(branch.startX, branch.startY, branch.endX, branch.endY);
+      gradient.addColorStop(0, this.rgbToHex(startColor));
+      gradient.addColorStop(1, this.rgbToHex(endColor));
+      return gradient;
+    }
+    var solid = this.hexToRgb(this.color) || [0, 0, 0];
+    var shaded = this.applyShading(solid, shade);
+    return this.rgbToHex(shaded);
   };
 
   // Expose TreePlugin globally
