@@ -12,6 +12,8 @@ const defaultSettings = {
   lightIntensity: 0.5
 };
 
+let forestDirty = false;                // draw forest layer only when it changes
+const DEBUG_LOG = false;                // disable per-frame console logs
 
 
 const randomRanges = {
@@ -50,6 +52,15 @@ const controls = {
   savePresetBtn: document.querySelector('#save-preset-btn'),
   loadPresetBtn: document.querySelector('#load-preset-btn')
 };
+
+
+function stripBranches(levels) {
+  return levels.map(level =>
+    level.map(({ startX, startY, endX, endY, lineWidth, midX, midY }) => ({
+      startX, startY, endX, endY, lineWidth, midX, midY
+    }))
+  );
+}
 
 function clamp(value, min, max) {
   if (!Number.isFinite(value)) return min;
@@ -194,7 +205,7 @@ function createNewTreeData(x, y) {
       var baseCount = 10000;
       var depthMultiplier = Math.pow(2, treeData.depth); // 2^depth branches at max depth
       var scaleMultiplier = treeData.treeScale * 2; // Larger trees have more branches
-      var totalCount = Math.min(200000, Math.max(50000, baseCount * depthMultiplier * scaleMultiplier / 10));
+      var totalCount = Math.min(50000, Math.max(10000, baseCount * depthMultiplier * scaleMultiplier / 10));
       
       treeData.randSeq = [];
       var s = value;
@@ -433,6 +444,7 @@ function clamp01(value) {
   return value;
 }
 
+
 function startMasterAnimation() {
   if (masterAnimationId) return; // Already running
   
@@ -445,8 +457,9 @@ function startMasterAnimation() {
     }
     
     // Draw all forest trees first (background)
-    if (forestMode) {
-      drawForestTrees();
+    if (forestMode && forestDirty) {
+      drawForestTrees();    // paints existing forest once
+      forestDirty = false;
     }
     
     // Animate all growing trees
@@ -492,9 +505,9 @@ function startMasterAnimation() {
     const duration = endTime - startTime;
     
     // Log performance info every 60 frames (roughly once per second at 60fps)
-    if (frameCount % 60 === 0) {
+    if (DEBUG_LOG && frameCount % 60 === 0) {
       console.log(`Animation frame: ${growingTrees.length} growing, ${forestTrees.length} completed, ${duration.toFixed(2)}ms`);
-    }
+    }    
     frameCount++;
     
     // Continue animation if there are growing trees or forest mode is active
@@ -512,20 +525,26 @@ function startMasterAnimation() {
 let frameCount = 0; // For performance monitoring
 
 function animateTreeData(treeData) {
-  // Draw already completed branches (from root up to currentDepth-1) fully
-  for (var d = 0; d < treeData.currentDepth; d++) {
-    if (d >= treeData.depth) break;
-    for (var k = 0; k < treeData.branches[d].length; k++) {
-      var branch = treeData.branches[d][k];
-      tree.ctx.beginPath();
-      tree.ctx.moveTo(branch.startX, branch.startY);
-      tree.ctx.lineTo(branch.endX, branch.endY);
-      tree.ctx.lineWidth = branch.lineWidth;
-      tree.ctx.strokeStyle = getBranchStrokeStyleForTreeData(tree.ctx, branch, treeData);
-      tree.ctx.stroke();
-      tree.ctx.closePath();
+    // We do NOT clear per frame in forest mode, so no need to re-stroke
+  // already completed segments. Leave this OFF by default.
+  // If you ever switch to "clear each frame", flip this to true.
+  const reStrokeCompleted = false;
+  if (reStrokeCompleted) {
+    for (var d = 0; d < treeData.currentDepth; d++) {
+      if (d >= treeData.depth) break;
+      for (var k = 0; k < treeData.branches[d].length; k++) {
+        var branch = treeData.branches[d][k];
+        tree.ctx.beginPath();
+        tree.ctx.moveTo(branch.startX, branch.startY);
+        tree.ctx.lineTo(branch.endX, branch.endY);
+        tree.ctx.lineWidth = branch.lineWidth;
+        tree.ctx.strokeStyle = getBranchStrokeStyleForTreeData(tree.ctx, branch, treeData);
+        tree.ctx.stroke();
+        tree.ctx.closePath();
+      }
     }
   }
+
 
   var stillGrowing = false;
   // Animate the branches at the current depth level
@@ -585,7 +604,7 @@ function storeCompletedTreeFromData(treeData) {
   
   // Create a snapshot of the tree data
   const completedTree = {
-    branches: JSON.parse(JSON.stringify(treeData.branches)),
+    branches: stripBranches(treeData.branches.slice(0, treeData.depth)),
     treeX: treeData.treeX,
     treeY: treeData.treeY,
     treeTop: treeData.treeTop,
@@ -602,6 +621,7 @@ function storeCompletedTreeFromData(treeData) {
   };
   
   forestTrees.push(completedTree);
+  forestDirty = true; // flag forest as dirty
 }
 
 function storeCompletedTreeFromInstance(treeInstance) {
@@ -685,7 +705,8 @@ function drawForestTrees() {
         tree.ctx.moveTo(branch.startX, branch.startY);
         tree.ctx.lineTo(branch.endX, branch.endY);
         tree.ctx.lineWidth = branch.lineWidth;
-        tree.ctx.strokeStyle = tempTree.getBranchStrokeStyle(tempTree.ctx, branch);
+        // per-tree lighting (no global look)
+        tree.ctx.strokeStyle = getBranchStrokeStyleForTreeData(tree.ctx, branch, completedTree);
         tree.ctx.stroke();
         tree.ctx.closePath();
       }
@@ -894,6 +915,9 @@ controls.forestMode.addEventListener('change', () => {
     growingTrees = [];
     forestTrees = [];
     tree.clearCanvas();
+    forestDirty = false;
+  }else{
+    forestDirty = true;
   }
 });
 
@@ -949,11 +973,16 @@ canvas.addEventListener('mousedown', (evt) => {
 });
 
 window.addEventListener('resize', () => {
+  if (forestMode) {
+    tree.clearCanvas();  // clear pixels
+    forestDirty = true;  // repaint forest once next frame
+  }
   if (!lastClick) return;
   window.requestAnimationFrame(() => {
     drawTreeAt(lastClick.x, lastClick.y);
   });
 });
+
 
 async function savePreset() {
   try {
