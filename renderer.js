@@ -185,7 +185,7 @@ function createNewTreeData(x, y) {
     const value = Number(treeData.seed);
     if (Number.isFinite(value)) {
       treeData.currentSeed = value;
-      var totalCount = 10000;
+      var totalCount = 50000; // Increased from 10000 to handle more branches
       treeData.randSeq = [];
       var s = value;
       for (var i = 0; i < totalCount; i++) {
@@ -277,9 +277,10 @@ function createBranchForTreeData(treeData, startX, startY, angle, depth) {
 
 function randomForTreeData(treeData, min, max) {
   // Use deterministic random sequence if available; otherwise, fallback to Math.random()
-  if (treeData.randSeq) {
+  if (treeData.randSeq && treeData.randCounter < treeData.randSeq.length) {
     return min + treeData.randSeq[treeData.randCounter++] * (max - min);
   } else {
+    // Fallback to Math.random() if sequence is exhausted or not available
     return Math.random() * (max - min) + min;
   }
 }
@@ -478,6 +479,11 @@ function animateTreeData(treeData) {
     if (currentDone) {
       treeData.currentDepth++;
       stillGrowing = true;
+      
+      // Debug: Log when tree reaches maximum depth
+      if (treeData.currentDepth >= treeData.depth) {
+        console.log(`Tree completed: depth ${treeData.currentDepth}/${treeData.depth}, branches: ${treeData.branches.map(b => b.length).join(',')}`);
+      }
     }
   }
 
@@ -486,6 +492,13 @@ function animateTreeData(treeData) {
 
 function drawTreeAt(x, y) {
   applySettingsToTree();
+  
+  // Limit the number of simultaneously growing trees to prevent performance issues
+  const maxGrowingTrees = 20; // Reasonable limit for parallel growth
+  if (growingTrees.length >= maxGrowingTrees) {
+    console.log(`Maximum growing trees limit reached (${maxGrowingTrees}). Please wait for some trees to finish growing.`);
+    return;
+  }
   
   // Create a new tree data structure for parallel growth
   const treeData = createNewTreeData(x, y);
