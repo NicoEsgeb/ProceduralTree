@@ -10,10 +10,70 @@
 <body>
   <div id="app">
     <div id="canvas-container" class="canvas-container"></div>
-    <div id="pane-container" class="pane-container"></div>
+    <div id="pane-container" class="pane-container">
+      <div id="control-panel" class="control-panel">
+        <h2>Tree Settings</h2>
+        <div class="control-group">
+          <label for="depth-input">Depth</label>
+          <input type="number" id="depth-input" min="1" max="11" step="1" />
+        </div>
+        <div class="control-group">
+          <label for="growth-speed-input">Growth Speed</label>
+          <input type="number" id="growth-speed-input" min="0.5" max="5" step="0.1" />
+        </div>
+        <div class="control-group">
+          <label for="tree-scale-input">Tree Scale</label>
+          <input type="number" id="tree-scale-input" min="0.2" max="4" step="0.1" />
+        </div>
+        <div class="control-group">
+          <label for="branch-width-input">Branch Width</label>
+          <input type="number" id="branch-width-input" min="0.2" max="5" step="0.1" />
+        </div>
+        <div class="control-group">
+          <label for="color-mode-input">Color Mode</label>
+          <select id="color-mode-input">
+            <option value="gradient">Gradient</option>
+            <option value="solid">Solid</option>
+          </select>
+        </div>
+        <div class="control-group" id="solid-color-group">
+          <label for="color-input">Color</label>
+          <input type="color" id="color-input" />
+        </div>
+        <div class="control-group gradient-group">
+          <label for="gradient-start-input">Gradient Start</label>
+          <input type="color" id="gradient-start-input" />
+        </div>
+        <div class="control-group gradient-group">
+          <label for="gradient-end-input">Gradient End</label>
+          <input type="color" id="gradient-end-input" />
+        </div>
+        <div class="control-group">
+          <label for="seed-input">Seed</label>
+          <input type="text" id="seed-input" placeholder="(leave blank for random)" />
+        </div>
+        <div class="control-group checkbox">
+          <label>
+            <input type="checkbox" id="auto-seed-input" checked />
+            Randomize seed on click
+          </label>
+        </div>
+        <div class="button-row">
+          <button id="redraw-btn">Redraw</button>
+          <button id="randomize-btn">Randomize Tree</button>
+        </div>
+        <div class="button-row">
+          <button id="randomize-seed-btn">Randomize Seed</button>
+          <button id="clear-btn">Clear</button>
+        </div>
+        <div class="button-row">
+          <button id="save-preset-btn">Save Preset</button>
+          <button id="load-preset-btn">Load Preset</button>
+        </div>
+      </div>
+    </div>
   </div>
   <script src="./vendor/tree.js"></script>
-  <script src="./node_modules/tweakpane/dist/tweakpane.min.js"></script>
   <script type="module" src="./renderer.js"></script>
 </body>
 </html>

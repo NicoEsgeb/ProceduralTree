@@ -46,29 +46,101 @@ body {
   pointer-events: auto;
 }
 
-button.pane-control {
-  width: 100%;
-  margin-top: 8px;
-  padding: 8px 12px;
+.control-panel {
+  background: rgba(20, 20, 20, 0.9);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+  color: #f5f5f5;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.control-panel h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+  gap: 6px;
+}
+
+.control-group label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.control-group input,
+.control-group select {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: #f5f5f5;
+  padding: 6px 8px;
+  font-size: 14px;
+}
+
+.control-group input[type='color'] {
+  padding: 0;
+  height: 36px;
+}
+
+.control-group.checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-group.checkbox label {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.button-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.button-row button {
+  flex: 1;
+  padding: 8px 10px;
   border: none;
   border-radius: 6px;
-  font-size: 14px;
+  background: linear-gradient(135deg, #3b82f6, #9333ea);
+  color: white;
   font-weight: 600;
   cursor: pointer;
-  background: #2d2d2d;
-  color: #f7f7f7;
-  transition: background 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
 
-button.pane-control:hover {
-  background: #3e3e3e;
+.button-row button:nth-child(2) {
+  background: linear-gradient(135deg, #ef4444, #f97316);
 }
 
-button.pane-control:active {
-  background: #1f1f1f;
+.button-row button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 
-button.pane-control:disabled {
-  opacity: 0.5;
-  cursor: progress;
+.button-row button:active {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+.gradient-group {
+  display: none;
 }

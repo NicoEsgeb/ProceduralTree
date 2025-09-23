@@ -5,20 +5,75 @@ const defaultSettings = {
   branchWidth: 1,
   colorMode: 'gradient',
   color: '#2c7a2c',
-  gradientStart: '#8B4513',
-  gradientEnd: '#228B22',
+  gradientStart: '#8b4513',
+  gradientEnd: '#228b22',
   seed: '1337'
+};
+
+const randomRanges = {
+  depth: [3, 11],
+  growthSpeed: [0.6, 4.5],
+  treeScale: [0.5, 3.5],
+  branchWidth: [0.3, 4]
 };
 
 const canvasContainer = document.querySelector('#canvas-container');
 const paneContainer = document.querySelector('#pane-container');
+let canvas = null;
 
-function parseSeed(value) {
+const controls = {
+  depth: document.querySelector('#depth-input'),
+  growthSpeed: document.querySelector('#growth-speed-input'),
+  treeScale: document.querySelector('#tree-scale-input'),
+  branchWidth: document.querySelector('#branch-width-input'),
+  colorMode: document.querySelector('#color-mode-input'),
+  color: document.querySelector('#color-input'),
+  gradientStart: document.querySelector('#gradient-start-input'),
+  gradientEnd: document.querySelector('#gradient-end-input'),
+  seed: document.querySelector('#seed-input'),
+  autoSeed: document.querySelector('#auto-seed-input'),
+  solidGroup: document.querySelector('#solid-color-group'),
+  gradientGroups: document.querySelectorAll('.gradient-group'),
+  redrawBtn: document.querySelector('#redraw-btn'),
+  randomizeTreeBtn: document.querySelector('#randomize-btn'),
+  randomizeSeedBtn: document.querySelector('#randomize-seed-btn'),
+  clearBtn: document.querySelector('#clear-btn'),
+  savePresetBtn: document.querySelector('#save-preset-btn'),
+  loadPresetBtn: document.querySelector('#load-preset-btn')
+};
+
+function clamp(value, min, max) {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(max, Math.max(min, value));
+}
+
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomFloat(min, max, precision = 2) {
+  const val = Math.random() * (max - min) + min;
+  return Number(val.toFixed(precision));
+}
+
+function randomHexColor() {
+  return `#${Math.floor(Math.random() * 0xffffff)
+    .toString(16)
+    .padStart(6, '0')}`;
+}
+
+function parseSeedValue(value) {
   if (value === undefined || value === null) return undefined;
   const trimmed = String(value).trim();
   if (trimmed === '') return undefined;
   const numeric = Number(trimmed);
   return Number.isFinite(numeric) ? numeric : undefined;
+}
+
+function sanitizeColor(color, fallback) {
+  if (typeof color !== 'string') return fallback;
+  const normalized = color.trim().toLowerCase();
+  return /^#([0-9a-f]{6})$/.test(normalized) ? normalized : fallback;
 }
 
 function cloneSettings(src) {
@@ -35,7 +90,12 @@ function cloneSettings(src) {
   };
 }
 
-const settings = cloneSettings(defaultSettings);
+const settings = {
+  ...defaultSettings
+};
+
+let autoRandomSeed = true;
+let lastClick = null;
 
 const tree = new window.TreePlugin({
   container: canvasContainer,
@@ -47,7 +107,7 @@ const tree = new window.TreePlugin({
   color: settings.color,
   gradientStart: settings.gradientStart,
   gradientEnd: settings.gradientEnd,
-  seed: parseSeed(settings.seed)
+  seed: parseSeedValue(settings.seed)
 });
 
 if (tree.animation) {
@@ -56,8 +116,7 @@ if (tree.animation) {
 }
 tree.clearCanvas();
 
-const canvas = canvasContainer.querySelector('canvas');
-let lastClick = null;
+canvas = canvasContainer.querySelector('canvas');
 
 function applySettingsToTree() {
   tree.depth = settings.depth;
@@ -68,7 +127,7 @@ function applySettingsToTree() {
   tree.color = settings.color;
   tree.gradientStart = settings.gradientStart;
   tree.gradientEnd = settings.gradientEnd;
-  tree.setSeed(parseSeed(settings.seed));
+  tree.setSeed(parseSeedValue(settings.seed));
 }
 
 function drawTreeAt(x, y) {
@@ -86,13 +145,158 @@ function redrawFromLastPoint() {
 
 function withCanvasPosition(evt) {
   const rect = canvas.getBoundingClientRect();
-  const x = evt.clientX - rect.left;
-  const y = evt.clientY - rect.top;
-  return { x, y };
+  return {
+    x: evt.clientX - rect.left,
+    y: evt.clientY - rect.top
+  };
 }
 
+function updateColorInputsVisibility() {
+  const useGradient = settings.colorMode === 'gradient';
+  controls.solidGroup.style.display = useGradient ? 'none' : 'flex';
+  controls.gradientGroups.forEach((group) => {
+    group.style.display = useGradient ? 'flex' : 'none';
+  });
+}
+
+function refreshControls() {
+  controls.depth.value = settings.depth;
+  controls.growthSpeed.value = settings.growthSpeed;
+  controls.treeScale.value = settings.treeScale;
+  controls.branchWidth.value = settings.branchWidth;
+  controls.colorMode.value = settings.colorMode;
+  controls.color.value = sanitizeColor(settings.color, '#2c7a2c');
+  controls.gradientStart.value = sanitizeColor(settings.gradientStart, '#8b4513');
+  controls.gradientEnd.value = sanitizeColor(settings.gradientEnd, '#228b22');
+  controls.seed.value = settings.seed ?? '';
+  controls.autoSeed.checked = autoRandomSeed;
+  updateColorInputsVisibility();
+}
+
+function setSeedValue(newSeed, { refresh = true, redraw = true } = {}) {
+  const stringValue = newSeed === undefined || newSeed === null ? '' : String(newSeed).trim();
+  settings.seed = stringValue;
+  if (refresh) {
+    controls.seed.value = settings.seed;
+  }
+  if (redraw && lastClick) {
+    redrawFromLastPoint();
+  }
+}
+
+function randomizeSeed({ redraw = true } = {}) {
+  const seed = randomInt(1, 999_999_999);
+  setSeedValue(seed, { refresh: true, redraw });
+}
+
+function randomizeTreeSettings() {
+  settings.depth = clamp(randomInt(randomRanges.depth[0], randomRanges.depth[1]), 1, 11);
+  settings.growthSpeed = clamp(randomFloat(randomRanges.growthSpeed[0], randomRanges.growthSpeed[1]), 0.5, 5);
+  settings.treeScale = clamp(randomFloat(randomRanges.treeScale[0], randomRanges.treeScale[1]), 0.2, 4);
+  settings.branchWidth = clamp(randomFloat(randomRanges.branchWidth[0], randomRanges.branchWidth[1]), 0.2, 5);
+
+  const useGradient = Math.random() < 0.7;
+  settings.colorMode = useGradient ? 'gradient' : 'solid';
+  if (useGradient) {
+    settings.gradientStart = randomHexColor();
+    let end = randomHexColor();
+    if (end === settings.gradientStart) {
+      end = randomHexColor();
+    }
+    settings.gradientEnd = end;
+    settings.color = randomHexColor();
+  } else {
+    const solid = randomHexColor();
+    settings.color = solid;
+    settings.gradientStart = solid;
+    settings.gradientEnd = solid;
+  }
+
+  randomizeSeed({ redraw: false });
+  refreshControls();
+  redrawFromLastPoint();
+}
+
+function syncSettingsFromInputs() {
+  settings.depth = clamp(Number(controls.depth.value) || defaultSettings.depth, 1, 11);
+  settings.growthSpeed = clamp(Number(controls.growthSpeed.value) || defaultSettings.growthSpeed, 0.5, 5);
+  settings.treeScale = clamp(Number(controls.treeScale.value) || defaultSettings.treeScale, 0.2, 4);
+  settings.branchWidth = clamp(Number(controls.branchWidth.value) || defaultSettings.branchWidth, 0.2, 5);
+  settings.colorMode = controls.colorMode.value === 'solid' ? 'solid' : 'gradient';
+  settings.color = sanitizeColor(controls.color.value, settings.color);
+  settings.gradientStart = sanitizeColor(controls.gradientStart.value, settings.gradientStart);
+  settings.gradientEnd = sanitizeColor(controls.gradientEnd.value, settings.gradientEnd);
+  const seedInputValue = controls.seed.value.trim();
+  settings.seed = seedInputValue;
+  updateColorInputsVisibility();
+}
+
+controls.depth.addEventListener('change', () => {
+  syncSettingsFromInputs();
+  if (lastClick) redrawFromLastPoint();
+});
+controls.growthSpeed.addEventListener('change', () => {
+  syncSettingsFromInputs();
+  if (lastClick) redrawFromLastPoint();
+});
+controls.treeScale.addEventListener('change', () => {
+  syncSettingsFromInputs();
+  if (lastClick) redrawFromLastPoint();
+});
+controls.branchWidth.addEventListener('change', () => {
+  syncSettingsFromInputs();
+  if (lastClick) redrawFromLastPoint();
+});
+controls.colorMode.addEventListener('change', () => {
+  syncSettingsFromInputs();
+  refreshControls();
+  if (lastClick) redrawFromLastPoint();
+});
+controls.color.addEventListener('change', () => {
+  syncSettingsFromInputs();
+  if (lastClick) redrawFromLastPoint();
+});
+controls.gradientStart.addEventListener('change', () => {
+  syncSettingsFromInputs();
+  if (lastClick) redrawFromLastPoint();
+});
+controls.gradientEnd.addEventListener('change', () => {
+  syncSettingsFromInputs();
+  if (lastClick) redrawFromLastPoint();
+});
+controls.seed.addEventListener('change', () => {
+  syncSettingsFromInputs();
+  if (lastClick) redrawFromLastPoint();
+});
+
+controls.autoSeed.addEventListener('change', () => {
+  autoRandomSeed = controls.autoSeed.checked;
+});
+
+controls.redrawBtn.addEventListener('click', () => redrawFromLastPoint());
+controls.randomizeTreeBtn.addEventListener('click', () => randomizeTreeSettings());
+controls.randomizeSeedBtn.addEventListener('click', () => randomizeSeed());
+function clearCanvas() {
+  if (tree.animation) {
+    cancelAnimationFrame(tree.animation);
+    tree.animation = null;
+  }
+  tree.clearCanvas();
+  lastClick = null;
+}
+
+controls.clearBtn.addEventListener('click', () => {
+  clearCanvas();
+});
+controls.savePresetBtn.addEventListener('click', () => savePreset());
+controls.loadPresetBtn.addEventListener('click', () => loadPreset());
+
 canvas.addEventListener('mousedown', (evt) => {
+  if (evt.button !== 0) return;
   const pos = withCanvasPosition(evt);
+  if (autoRandomSeed) {
+    setSeedValue(randomInt(1, 999_999_999), { refresh: true, redraw: false });
+  }
   lastClick = pos;
   drawTreeAt(pos.x, pos.y);
 });
@@ -103,110 +307,6 @@ window.addEventListener('resize', () => {
     drawTreeAt(lastClick.x, lastClick.y);
   });
 });
-
-const pane = new Tweakpane.Pane({
-  container: paneContainer,
-  title: 'ClickTree Controls'
-});
-
-const depthInput = pane.addInput(settings, 'depth', {
-  label: 'Depth',
-  min: 1,
-  max: 11,
-  step: 1
-});
-
-const growthSpeedInput = pane.addInput(settings, 'growthSpeed', {
-  label: 'Growth Speed',
-  min: 0.5,
-  max: 5,
-  step: 0.1
-});
-
-const treeScaleInput = pane.addInput(settings, 'treeScale', {
-  label: 'Tree Scale',
-  min: 0.2,
-  max: 4,
-  step: 0.1
-});
-
-const branchWidthInput = pane.addInput(settings, 'branchWidth', {
-  label: 'Branch Width',
-  min: 0.2,
-  max: 5,
-  step: 0.1
-});
-
-const colorModeInput = pane.addInput(settings, 'colorMode', {
-  label: 'Color Mode',
-  options: {
-    Gradient: 'gradient',
-    Solid: 'solid'
-  }
-});
-
-const colorInput = pane.addInput(settings, 'color', {
-  label: 'Color',
-  view: 'color'
-});
-
-const gradientStartInput = pane.addInput(settings, 'gradientStart', {
-  label: 'Gradient Start',
-  view: 'color'
-});
-
-const gradientEndInput = pane.addInput(settings, 'gradientEnd', {
-  label: 'Gradient End',
-  view: 'color'
-});
-
-const seedInput = pane.addInput(settings, 'seed', {
-  label: 'Seed'
-});
-
-function updateColorInputsVisibility() {
-  const isGradient = settings.colorMode === 'gradient';
-  colorInput.hidden = isGradient;
-  gradientStartInput.hidden = !isGradient;
-  gradientEndInput.hidden = !isGradient;
-}
-
-updateColorInputsVisibility();
-
-pane.on('change', (ev) => {
-  if (ev.presetKey === 'colorMode') {
-    updateColorInputsVisibility();
-  }
-  if (ev.presetKey === 'seed') {
-    settings.seed = String(settings.seed).trim();
-  }
-});
-
-const actionsFolder = pane.addFolder({ title: 'Actions' });
-
-const redrawButton = actionsFolder.addButton({ title: 'Redraw' });
-const randomizeSeedButton = actionsFolder.addButton({ title: 'Randomize Seed' });
-const clearButton = actionsFolder.addButton({ title: 'Clear' });
-const savePresetButton = actionsFolder.addButton({ title: 'Save Preset' });
-const loadPresetButton = actionsFolder.addButton({ title: 'Load Preset' });
-
-actionsFolder.expanded = true;
-
-function randomizeSeed() {
-  const newSeed = Math.floor(Math.random() * 1_000_000_000);
-  settings.seed = String(newSeed);
-  seedInput.refresh();
-  redrawFromLastPoint();
-}
-
-function clearCanvas() {
-  if (tree.animation) {
-    cancelAnimationFrame(tree.animation);
-    tree.animation = null;
-  }
-  tree.clearCanvas();
-  lastClick = null;
-}
 
 async function savePreset() {
   try {
@@ -228,53 +328,37 @@ async function loadPreset() {
 }
 
 function applyPreset(preset) {
-  const keys = Object.keys(defaultSettings);
-  let changed = false;
-  keys.forEach((key) => {
-    if (preset[key] === undefined || preset[key] === null) return;
-    if (key === 'depth' || key === 'growthSpeed' || key === 'treeScale' || key === 'branchWidth') {
-      const value = Number(preset[key]);
-      if (Number.isFinite(value)) {
-        if (key === 'depth') {
-          settings[key] = Math.min(11, Math.max(1, Math.round(value)));
-        } else if (key === 'growthSpeed') {
-          settings[key] = Math.min(5, Math.max(0.5, value));
-        } else if (key === 'treeScale') {
-          settings[key] = Math.min(4, Math.max(0.2, value));
-        } else if (key === 'branchWidth') {
-          settings[key] = Math.min(5, Math.max(0.2, value));
-        }
-        changed = true;
-      }
-      return;
-    }
-    if (key === 'seed') {
-      settings.seed = String(preset[key]);
-      changed = true;
-      return;
-    }
-    settings[key] = preset[key];
-    changed = true;
-  });
-  if (!changed) return;
-  depthInput.refresh();
-  growthSpeedInput.refresh();
-  treeScaleInput.refresh();
-  branchWidthInput.refresh();
-  colorModeInput.refresh();
-  colorInput.refresh();
-  gradientStartInput.refresh();
-  gradientEndInput.refresh();
-  seedInput.refresh();
-  updateColorInputsVisibility();
+  if (!preset || typeof preset !== 'object') return;
+  if (preset.depth !== undefined) {
+    settings.depth = clamp(Number(preset.depth), 1, 11);
+  }
+  if (preset.growthSpeed !== undefined) {
+    settings.growthSpeed = clamp(Number(preset.growthSpeed), 0.5, 5);
+  }
+  if (preset.treeScale !== undefined) {
+    settings.treeScale = clamp(Number(preset.treeScale), 0.2, 4);
+  }
+  if (preset.branchWidth !== undefined) {
+    settings.branchWidth = clamp(Number(preset.branchWidth), 0.2, 5);
+  }
+  if (preset.colorMode !== undefined) {
+    settings.colorMode = preset.colorMode === 'solid' ? 'solid' : 'gradient';
+  }
+  if (preset.color !== undefined) {
+    settings.color = sanitizeColor(preset.color, settings.color);
+  }
+  if (preset.gradientStart !== undefined) {
+    settings.gradientStart = sanitizeColor(preset.gradientStart, settings.gradientStart);
+  }
+  if (preset.gradientEnd !== undefined) {
+    settings.gradientEnd = sanitizeColor(preset.gradientEnd, settings.gradientEnd);
+  }
+  if (preset.seed !== undefined) {
+    settings.seed = String(preset.seed);
+  }
+  refreshControls();
   redrawFromLastPoint();
 }
-
-redrawButton.on('click', () => redrawFromLastPoint());
-randomizeSeedButton.on('click', () => randomizeSeed());
-clearButton.on('click', () => clearCanvas());
-savePresetButton.on('click', () => savePreset());
-loadPresetButton.on('click', () => loadPreset());
 
 if (window.clickTreeAPI?.onMenuAction) {
   window.clickTreeAPI.onMenuAction((action) => {
@@ -294,15 +378,11 @@ if (window.clickTreeAPI?.onPresetLoaded) {
   });
 }
 
-if (window.clickTreeAPI?.onPresetSaved) {
-  window.clickTreeAPI.onPresetSaved(() => {
-    // no-op reserved for future use
-  });
-}
+refreshControls();
 
-// Expose for debugging if needed
 window.clickTree = {
   draw: drawTreeAt,
   clear: clearCanvas,
-  settings,
+  randomize: randomizeTreeSettings,
+  settings
 };

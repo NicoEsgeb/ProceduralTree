@@ -1,6 +1,6 @@
 # ClickTree
 
-ClickTree is a minimal Electron desktop app that lets you grow procedurally generated trees with the open-source [`tree.js`](vendor/tree.js) plugin. Click anywhere on the canvas to sprout a tree and tweak parameters live through a compact Tweakpane control panel.
+ClickTree is a minimal Electron desktop app that lets you grow procedurally generated trees with the open-source [`tree.js`](vendor/tree.js) plugin. Click anywhere on the canvas to sprout a tree and tweak parameters live through the built-in control panel.
 
 ## Getting Started
 
@@ -23,14 +23,14 @@ This wraps the app with `electron-builder` and produces platform-specific binari
 
 - **Click to grow**: click (or Redraw) to generate a deterministic tree at the selected point.
 - **Parameters**: depth, growth speed, tree scale, branch width, color mode (solid or gradient), seed and colors.
-- **Randomize Seed**: generates a new seed while keeping other inputs.
+- **Randomize Tree**: shuffles all parameters (depth, scale, colors, seed) in one click.
 - **Clear**: stops any animation and clears the canvas.
 - **Presets**: Save/Load buttons (and File menu items) read/write JSON configuration files via the native dialog.
 - **Menu shortcuts**: `Cmd/Ctrl + S` saves the current preset, `Cmd/Ctrl + O` loads one, and `View` offers Reload or Toggle DevTools.
 
 ## Determinism
 
-The underlying plugin exposes a seeded RNG. Passing the same seed together with the same parameters reproduces identical trees, which is used by the Randomize/Redraw flow and saved presets.
+The underlying plugin exposes a seeded RNG. Passing the same seed together with the same parameters reproduces identical trees, which powers the Randomize/Redraw flow and saved presets.
 
 ## License
 
