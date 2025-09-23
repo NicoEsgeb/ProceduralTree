@@ -12,6 +12,8 @@ const defaultSettings = {
   lightIntensity: 0.5
 };
 
+
+
 const randomRanges = {
   depth: [3, 11],
   growthSpeed: [0.6, 4.5],
@@ -110,6 +112,7 @@ let forestTrees = []; // Array to store completed trees in forest mode
 let growingTrees = []; // Array to store trees currently growing
 let masterAnimationId = null; // ID for the master animation loop
 
+
 const tree = new window.TreePlugin({
   container: canvasContainer,
   depth: settings.depth,
@@ -177,7 +180,8 @@ function createNewTreeData(x, y) {
     randSeq: null,
     randCounter: 0,
     currentSeed: null,
-    fullDepth: 11
+    fullDepth: 11,
+    createdAt: Date.now() // Track when tree was created
   };
   
   // Initialize random sequence if seed is provided
@@ -185,7 +189,13 @@ function createNewTreeData(x, y) {
     const value = Number(treeData.seed);
     if (Number.isFinite(value)) {
       treeData.currentSeed = value;
-      var totalCount = 50000; // Increased from 10000 to handle more branches
+      // Calculate dynamic sequence size based on tree complexity
+      // Higher depth and scale = more branches = need more random numbers
+      var baseCount = 10000;
+      var depthMultiplier = Math.pow(2, treeData.depth); // 2^depth branches at max depth
+      var scaleMultiplier = treeData.treeScale * 2; // Larger trees have more branches
+      var totalCount = Math.min(200000, Math.max(50000, baseCount * depthMultiplier * scaleMultiplier / 10));
+      
       treeData.randSeq = [];
       var s = value;
       for (var i = 0; i < totalCount; i++) {
@@ -194,6 +204,9 @@ function createNewTreeData(x, y) {
         treeData.randSeq.push(rnd);
       }
       treeData.randCounter = 0;
+      treeData.randSeqSize = totalCount;
+      
+      console.log(`Tree created with ${totalCount} random numbers (depth: ${treeData.depth}, scale: ${treeData.treeScale})`);
     }
   }
   
@@ -275,12 +288,38 @@ function createBranchForTreeData(treeData, startX, startY, angle, depth) {
   createBranchForTreeData(treeData, endX, endY, angle + randomForTreeData(treeData, 15, 23), depth + 1);
 }
 
+function regenerateRandomSequence(treeData) {
+  if (treeData.currentSeed === undefined) return;
+  
+  console.log(`Regenerating random sequence for tree (used ${treeData.randCounter}/${treeData.randSeq.length})`);
+  
+  // Generate new sequence starting from where we left off
+  var s = treeData.currentSeed + treeData.randCounter; // Offset the seed
+  var totalCount = treeData.randSeqSize || 50000;
+  
+  treeData.randSeq = [];
+  for (var i = 0; i < totalCount; i++) {
+    s = (s * 16807) % 2147483647;
+    var rnd = (s - 1) / 2147483646;
+    treeData.randSeq.push(rnd);
+  }
+  treeData.randCounter = 0;
+}
+
 function randomForTreeData(treeData, min, max) {
   // Use deterministic random sequence if available; otherwise, fallback to Math.random()
   if (treeData.randSeq && treeData.randCounter < treeData.randSeq.length) {
+    // Warn if we're using more than 80% of our random sequence
+    if (treeData.randCounter > treeData.randSeq.length * 0.8) {
+      console.warn(`Tree using ${Math.round(treeData.randCounter/treeData.randSeq.length*100)}% of random sequence (${treeData.randCounter}/${treeData.randSeq.length})`);
+    }
+    return min + treeData.randSeq[treeData.randCounter++] * (max - min);
+  } else if (treeData.randSeq && treeData.currentSeed !== undefined) {
+    // Regenerate sequence if we have a seed but exhausted the current one
+    regenerateRandomSequence(treeData);
     return min + treeData.randSeq[treeData.randCounter++] * (max - min);
   } else {
-    // Fallback to Math.random() if sequence is exhausted or not available
+    // Fallback to Math.random() if sequence is not available
     return Math.random() * (max - min) + min;
   }
 }
@@ -398,6 +437,8 @@ function startMasterAnimation() {
   if (masterAnimationId) return; // Already running
   
   function masterAnimate() {
+    const startTime = performance.now();
+    
     // Clear canvas first (only if not in forest mode)
     if (!forestMode && growingTrees.length === 0 && forestTrees.length === 0) {
       tree.clearCanvas();
@@ -410,13 +451,32 @@ function startMasterAnimation() {
     
     // Animate all growing trees
     let hasGrowingTrees = false;
+    let completedCount = 0;
+    const currentTime = Date.now();
+    
     for (let i = growingTrees.length - 1; i >= 0; i--) {
       const treeData = growingTrees[i];
+      const treeAge = currentTime - treeData.createdAt;
+      
+      // Force completion if tree has been growing for more than 30 seconds
+      if (treeAge > 30000) {
+        console.warn(`Force completing stuck tree after ${treeAge}ms`);
+        growingTrees.splice(i, 1);
+        completedCount++;
+        
+        // Store completed tree if in forest mode
+        if (forestMode) {
+          storeCompletedTreeFromData(treeData);
+        }
+        continue;
+      }
+      
       let stillGrowing = animateTreeData(treeData);
       
       if (!stillGrowing) {
         // Tree is fully grown, remove from growing list
         growingTrees.splice(i, 1);
+        completedCount++;
         
         // Store completed tree if in forest mode
         if (forestMode) {
@@ -427,16 +487,29 @@ function startMasterAnimation() {
       }
     }
     
+    // Performance monitoring
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+    
+    // Log performance info every 60 frames (roughly once per second at 60fps)
+    if (frameCount % 60 === 0) {
+      console.log(`Animation frame: ${growingTrees.length} growing, ${forestTrees.length} completed, ${duration.toFixed(2)}ms`);
+    }
+    frameCount++;
+    
     // Continue animation if there are growing trees or forest mode is active
     if (hasGrowingTrees || forestMode) {
       masterAnimationId = requestAnimationFrame(masterAnimate);
     } else {
       masterAnimationId = null;
+      frameCount = 0;
     }
   }
   
   masterAnimationId = requestAnimationFrame(masterAnimate);
 }
+
+let frameCount = 0; // For performance monitoring
 
 function animateTreeData(treeData) {
   // Draw already completed branches (from root up to currentDepth-1) fully
@@ -482,7 +555,8 @@ function animateTreeData(treeData) {
       
       // Debug: Log when tree reaches maximum depth
       if (treeData.currentDepth >= treeData.depth) {
-        console.log(`Tree completed: depth ${treeData.currentDepth}/${treeData.depth}, branches: ${treeData.branches.map(b => b.length).join(',')}`);
+        const age = Date.now() - treeData.createdAt;
+        console.log(`Tree completed: depth ${treeData.currentDepth}/${treeData.depth}, age: ${age}ms, branches: ${treeData.branches.map(b => b.length).join(',')}`);
       }
     }
   }
@@ -493,12 +567,8 @@ function animateTreeData(treeData) {
 function drawTreeAt(x, y) {
   applySettingsToTree();
   
-  // Limit the number of simultaneously growing trees to prevent performance issues
-  const maxGrowingTrees = 20; // Reasonable limit for parallel growth
-  if (growingTrees.length >= maxGrowingTrees) {
-    console.log(`Maximum growing trees limit reached (${maxGrowingTrees}). Please wait for some trees to finish growing.`);
-    return;
-  }
+  // No limit on growing trees - let the forest grow freely!
+  // Removed artificial limits to allow unlimited tree creation
   
   // Create a new tree data structure for parallel growth
   const treeData = createNewTreeData(x, y);
@@ -585,6 +655,7 @@ function storeCompletedTree() {
 function drawForestTrees() {
   if (!forestMode || forestTrees.length === 0) return;
   
+  // Optimize drawing by batching similar operations
   forestTrees.forEach(completedTree => {
     // Draw all branches of the completed tree using the main tree's context
     for (let d = 0; d < completedTree.depth && d < completedTree.branches.length; d++) {
