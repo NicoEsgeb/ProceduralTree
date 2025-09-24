@@ -9,7 +9,8 @@ const defaultSettings = {
   gradientEnd: '#228b22',
   seed: '1337',
   lightDirection: 315,
-  lightIntensity: 0.5
+  lightIntensity: 0.5,
+  renderScale: 1
 };
 
 let forestDirty = false;                // draw forest layer only when it changes
@@ -50,7 +51,8 @@ const controls = {
   randomizeSeedBtn: document.querySelector('#randomize-seed-btn'),
   clearBtn: document.querySelector('#clear-btn'),
   savePresetBtn: document.querySelector('#save-preset-btn'),
-  loadPresetBtn: document.querySelector('#load-preset-btn')
+  loadPresetBtn: document.querySelector('#load-preset-btn'),
+  renderScale: document.querySelector('#render-scale-input')
 };
 
 
@@ -81,6 +83,11 @@ function randomHexColor() {
     .toString(16)
     .padStart(6, '0')}`;
 }
+
+function scalePoint(x, y, pivotX, pivotY, s) {
+  return { x: pivotX + (x - pivotX) * s, y: pivotY + (y - pivotY) * s };
+}
+
 
 function parseSeedValue(value) {
   if (value === undefined || value === null) return undefined;
@@ -192,7 +199,8 @@ function createNewTreeData(x, y) {
     randCounter: 0,
     currentSeed: null,
     fullDepth: 11,
-    createdAt: Date.now() // Track when tree was created
+    createdAt: Date.now(), // Track when tree was created
+    renderScale: settings.renderScale
   };
   
   // Initialize random sequence if seed is provided
@@ -339,12 +347,18 @@ function degToRad(degree) {
   return degree * (Math.PI / 180);
 }
 
-function getBranchStrokeStyleForTreeData(ctx, branch, treeData) {
+function getBranchStrokeStyleForTreeData(ctx, branch, treeData, renderScale = 1) {
+
   var shade = getShadeFactorForTreeData(branch, treeData);
   if (treeData.colorMode === "gradient") {
     var startColor = applyShadingForTreeData(getColorAtYForTreeData(branch.startY, treeData), shade, treeData);
     var endColor = applyShadingForTreeData(getColorAtYForTreeData(branch.endY, treeData), shade, treeData);
-    var gradient = ctx.createLinearGradient(branch.startX, branch.startY, branch.endX, branch.endY);
+    // use scaled endpoints for gradient vector
+    const s  = renderScale || 1;
+    const p0 = scalePoint(branch.startX, branch.startY, treeData.treeX, treeData.treeY, s);
+    const p1 = scalePoint(branch.endX,   branch.endY,   treeData.treeX, treeData.treeY, s);
+
+    const gradient = ctx.createLinearGradient(p0.x, p0.y, p1.x, p1.y);
     gradient.addColorStop(0, rgbToHex(startColor));
     gradient.addColorStop(1, rgbToHex(endColor));
     return gradient;
@@ -525,9 +539,14 @@ function startMasterAnimation() {
 let frameCount = 0; // For performance monitoring
 
 function animateTreeData(treeData) {
-    // We do NOT clear per frame in forest mode, so no need to re-stroke
-  // already completed segments. Leave this OFF by default.
-  // If you ever switch to "clear each frame", flip this to true.
+  const s = treeData.renderScale || 1;
+
+  // scale around trunk base
+  tree.ctx.save();
+  tree.ctx.translate(treeData.treeX, treeData.treeY);
+  tree.ctx.scale(s, s);
+  tree.ctx.translate(-treeData.treeX, -treeData.treeY);
+
   const reStrokeCompleted = false;
   if (reStrokeCompleted) {
     for (var d = 0; d < treeData.currentDepth; d++) {
@@ -538,50 +557,48 @@ function animateTreeData(treeData) {
         tree.ctx.moveTo(branch.startX, branch.startY);
         tree.ctx.lineTo(branch.endX, branch.endY);
         tree.ctx.lineWidth = branch.lineWidth;
-        tree.ctx.strokeStyle = getBranchStrokeStyleForTreeData(tree.ctx, branch, treeData);
+        tree.ctx.strokeStyle = getBranchStrokeStyleForTreeData(tree.ctx, branch, treeData); // no 's'
         tree.ctx.stroke();
         tree.ctx.closePath();
       }
     }
   }
 
-
   var stillGrowing = false;
-  // Animate the branches at the current depth level
   if (treeData.currentDepth < treeData.depth) {
     var currentDone = true;
     for (var k = 0; k < treeData.branches[treeData.currentDepth].length; k++) {
       var branch = treeData.branches[treeData.currentDepth][k];
       if (branch.cntFrame < branch.frame) {
+        // Let the branch draw itself (no manual extra path)
         branch.draw(tree.ctx, treeData.growthSpeed);
         stillGrowing = true;
         currentDone = false;
       } else {
-        // If the branch is fully drawn, draw it as a complete line
+        // fully drawn
         tree.ctx.beginPath();
         tree.ctx.moveTo(branch.startX, branch.startY);
-        tree.ctx.lineTo(branch.endX, branch.endY);
-        tree.ctx.lineWidth = branch.lineWidth;
-        tree.ctx.strokeStyle = getBranchStrokeStyleForTreeData(tree.ctx, branch, treeData);
+        tree.ctx.lineTo(branch.endX,   branch.endY);
+        tree.ctx.lineWidth   = branch.lineWidth;
+        tree.ctx.strokeStyle = getBranchStrokeStyleForTreeData(tree.ctx, branch, treeData); // no 's'
         tree.ctx.stroke();
         tree.ctx.closePath();
       }
     }
-    // If all branches at the current depth are complete, move to the next depth level
     if (currentDone) {
       treeData.currentDepth++;
       stillGrowing = true;
-      
-      // Debug: Log when tree reaches maximum depth
       if (treeData.currentDepth >= treeData.depth) {
         const age = Date.now() - treeData.createdAt;
-        console.log(`Tree completed: depth ${treeData.currentDepth}/${treeData.depth}, age: ${age}ms, branches: ${treeData.branches.map(b => b.length).join(',')}`);
+        console.log(`Tree completed: depth ${treeData.currentDepth}/${treeData.depth}, age: ${age}ms`);
       }
     }
   }
 
+  tree.ctx.restore();
   return stillGrowing;
 }
+
 
 function drawTreeAt(x, y) {
   applySettingsToTree();
@@ -617,7 +634,8 @@ function storeCompletedTreeFromData(treeData) {
     gradientEnd: treeData.gradientEnd,
     lightDirection: treeData.lightDirection,
     lightIntensity: treeData.lightIntensity,
-    seed: treeData.seed
+    seed: treeData.seed,
+    renderScale: treeData.renderScale
   };
   
   forestTrees.push(completedTree);
@@ -674,45 +692,31 @@ function storeCompletedTree() {
 
 function drawForestTrees() {
   if (!forestMode || forestTrees.length === 0) return;
-  
-  // Optimize drawing by batching similar operations
-  forestTrees.forEach(completedTree => {
-    // Draw all branches of the completed tree using the main tree's context
-    for (let d = 0; d < completedTree.depth && d < completedTree.branches.length; d++) {
-      for (let k = 0; k < completedTree.branches[d].length; k++) {
-        const branch = completedTree.branches[d][k];
-        
-        // Create a temporary tree instance to get the correct stroke style
-        const tempTree = {
-          treeX: completedTree.treeX,
-          treeY: completedTree.treeY,
-          treeTop: completedTree.treeTop,
-          depth: completedTree.depth,
-          treeScale: completedTree.treeScale,
-          branchWidth: completedTree.branchWidth,
-          colorMode: completedTree.colorMode,
-          color: completedTree.color,
-          gradientStart: completedTree.gradientStart,
-          gradientEnd: completedTree.gradientEnd,
-          lightDirection: completedTree.lightDirection,
-          lightIntensity: completedTree.lightIntensity,
-          seed: completedTree.seed,
-          getBranchStrokeStyle: tree.getBranchStrokeStyle.bind(tree),
-          ctx: tree.ctx
-        };
-        
+
+  forestTrees.forEach(t => {
+    const s = t.renderScale || 1;
+    tree.ctx.save();
+    tree.ctx.translate(t.treeX, t.treeY);
+    tree.ctx.scale(s, s);
+    tree.ctx.translate(-t.treeX, -t.treeY);
+
+    for (let d = 0; d < t.depth && d < t.branches.length; d++) {
+      for (let k = 0; k < t.branches[d].length; k++) {
+        const branch = t.branches[d][k];
         tree.ctx.beginPath();
         tree.ctx.moveTo(branch.startX, branch.startY);
         tree.ctx.lineTo(branch.endX, branch.endY);
         tree.ctx.lineWidth = branch.lineWidth;
-        // per-tree lighting (no global look)
-        tree.ctx.strokeStyle = getBranchStrokeStyleForTreeData(tree.ctx, branch, completedTree);
+        tree.ctx.strokeStyle = getBranchStrokeStyleForTreeData(tree.ctx, branch, t); // no 's'
         tree.ctx.stroke();
         tree.ctx.closePath();
       }
     }
+
+    tree.ctx.restore();
   });
 }
+
 
 function redrawFromLastPoint() {
   // Stop master animation
@@ -768,6 +772,7 @@ function refreshControls() {
   controls.autoSeed.checked = autoRandomSeed;
   controls.forestMode.checked = forestMode;
   updateColorInputsVisibility();
+  controls.renderScale.value = String(settings.renderScale ?? 1);
 }
 
 function setSeedValue(newSeed, { refresh = true, redraw = true } = {}) {
@@ -827,6 +832,7 @@ function syncSettingsFromInputs() {
   settings.growthSpeed = clamp(Number(controls.growthSpeed.value) || defaultSettings.growthSpeed, 0.5, 5);
   settings.treeScale = clamp(Number(controls.treeScale.value) || defaultSettings.treeScale, 0.2, 4);
   settings.branchWidth = clamp(Number(controls.branchWidth.value) || defaultSettings.branchWidth, 0.2, 5);
+  settings.renderScale = clamp(Number(controls.renderScale.value) || 1, 0.2, 3);
   const rawDirection = Number(controls.lightDirection.value);
   if (Number.isFinite(rawDirection)) {
     let normalized = rawDirection % 360;
@@ -845,6 +851,10 @@ function syncSettingsFromInputs() {
   settings.seed = seedInputValue;
   updateColorInputsVisibility();
 }
+controls.renderScale.addEventListener('change', () => {
+  syncSettingsFromInputs();
+  if (lastClick) redrawFromLastPoint();
+});
 
 controls.depth.addEventListener('change', () => {
   syncSettingsFromInputs();
