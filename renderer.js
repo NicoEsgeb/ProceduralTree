@@ -52,7 +52,8 @@ const controls = {
   clearBtn: document.querySelector('#clear-btn'),
   savePresetBtn: document.querySelector('#save-preset-btn'),
   loadPresetBtn: document.querySelector('#load-preset-btn'),
-  renderScale: document.querySelector('#render-scale-input')
+  renderScaleInput: document.querySelector('#render-scale-input'),
+  renderScaleRange: document.querySelector('#render-scale-range'),
 };
 
 
@@ -718,6 +719,7 @@ function drawForestTrees() {
 }
 
 
+
 function redrawFromLastPoint() {
   // Stop master animation
   if (masterAnimationId) {
@@ -773,6 +775,9 @@ function refreshControls() {
   controls.forestMode.checked = forestMode;
   updateColorInputsVisibility();
   controls.renderScale.value = String(settings.renderScale ?? 1);
+  const s = String(settings.renderScale ?? 1);
+  if (controls.renderScaleInput) controls.renderScaleInput.value = s;
+  if (controls.renderScaleRange) controls.renderScaleRange.value = s;
 }
 
 function setSeedValue(newSeed, { refresh = true, redraw = true } = {}) {
@@ -832,7 +837,10 @@ function syncSettingsFromInputs() {
   settings.growthSpeed = clamp(Number(controls.growthSpeed.value) || defaultSettings.growthSpeed, 0.5, 5);
   settings.treeScale = clamp(Number(controls.treeScale.value) || defaultSettings.treeScale, 0.2, 4);
   settings.branchWidth = clamp(Number(controls.branchWidth.value) || defaultSettings.branchWidth, 0.2, 5);
-  settings.renderScale = clamp(Number(controls.renderScale.value) || 1, 0.2, 3);
+  const num = controls.renderScaleInput ? Number(controls.renderScaleInput.value) : NaN;
+  const rng = controls.renderScaleRange ? Number(controls.renderScaleRange.value) : NaN;
+  const chosen = Number.isFinite(num) ? num : (Number.isFinite(rng) ? rng : 1);
+  settings.renderScale = clamp(chosen, 0.02, 8);  // was 0.2–3
   const rawDirection = Number(controls.lightDirection.value);
   if (Number.isFinite(rawDirection)) {
     let normalized = rawDirection % 360;
@@ -851,10 +859,20 @@ function syncSettingsFromInputs() {
   settings.seed = seedInputValue;
   updateColorInputsVisibility();
 }
-controls.renderScale.addEventListener('change', () => {
-  syncSettingsFromInputs();
+
+function onRenderScaleChange(val) {
+  settings.renderScale = clamp(Number(val) || 1, 0.02, 8);
+  if (controls.renderScaleInput) controls.renderScaleInput.value = String(settings.renderScale);
+  if (controls.renderScaleRange) controls.renderScaleRange.value  = String(settings.renderScale);
   if (lastClick) redrawFromLastPoint();
-});
+}
+
+if (controls.renderScaleInput) {
+  controls.renderScaleInput.addEventListener('input', (e) => onRenderScaleChange(e.target.value));
+}
+if (controls.renderScaleRange) {
+  controls.renderScaleRange.addEventListener('input', (e) => onRenderScaleChange(e.target.value));
+}
 
 controls.depth.addEventListener('change', () => {
   syncSettingsFromInputs();
