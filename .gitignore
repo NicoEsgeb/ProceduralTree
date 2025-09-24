@@ -1,0 +1,16 @@
+node_modules/
+
+# build output
+dist/
+*.dmg
+*.zip
+*.exe
+*.AppImage
+*.deb
+*.asar
+*.log
+node_modules/
+dist/
+*.dmg
+*.zip
+*.asar
