@@ -19,7 +19,8 @@
       "index.html",
       "renderer.js",
       "styles.css",
-      "vendor/**/*"
+      "vendor/**/*",
+      "assets/**/*"    
     ],
     "directories": {
       "buildResources": "assets"
@@ -39,4 +40,5 @@
     "electron": "^29.4.0",
     "electron-builder": "^24.6.4"
   }
+  
 }

@@ -28,9 +28,17 @@
         <div class="control-group">
           <label for="render-scale-input">Output Scale</label>
           <!-- type directly here -->
-          <input type="number" id="render-scale-input" min="0.02" max="8" step="0.01" value="1" />
+          <input type="number" id="render-scale-input" min="0.02" max="3" step="0.01" value="1" />
           <!-- optional: live slider -->
-          <input type="range" id="render-scale-range" min="0.02" max="8" step="0.01" value="1" />
+          <input type="range" id="render-scale-range" min="0.02" max="3" step="0.01" value="1" />
+        </div>
+
+        <div class="control-group">
+          <label for="background-mode-input">Background</label>
+          <select id="background-mode-input">
+            <option value="dark">Dark</option>
+            <option value="cave">Cave image</option>
+          </select>
         </div>
         
                 

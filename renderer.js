@@ -10,11 +10,14 @@ const defaultSettings = {
   seed: '1337',
   lightDirection: 315,
   lightIntensity: 0.5,
-  renderScale: 1
+  renderScale: 1,
+  backgroundMode: 'dark'
 };
 
 let forestDirty = false;                // draw forest layer only when it changes
 const DEBUG_LOG = false;                // disable per-frame console logs
+
+let lastAnchorUV = null; // where the last tree is "planted" in UV space
 
 
 const randomRanges = {
@@ -54,7 +57,142 @@ const controls = {
   loadPresetBtn: document.querySelector('#load-preset-btn'),
   renderScaleInput: document.querySelector('#render-scale-input'),
   renderScaleRange: document.querySelector('#render-scale-range'),
+  backgroundMode: document.querySelector('#background-mode-input')
 };
+
+// === Background image meta & "cover" transform ===
+const BG_URL = 'assets/CaveImages/cave1.png'; // same path used by CSS
+const bgImg = new Image();
+let bgReady = false;
+bgImg.onload = () => {
+  bgReady = true;
+  updateCoverTransform();
+
+  // Normalize any old anchors that were captured before the image was ready
+  normalizeAnchorsToImageSpace();   // upgrades lastAnchorUV + all stored trees
+
+  // Repaint whatever is on screen
+  tree.clearCanvas();
+  if (forestMode && forestTrees.length) { forestDirty = true; drawForestTrees(); }
+  else if (growingTrees.length) { startMasterAnimation(); }
+  else { drawCompletedSingleTree(); }
+};
+
+bgImg.src = BG_URL;
+
+let cover = { scale: 1, offsetX: 0, offsetY: 0 };
+
+function updateCoverTransform() {
+  const w = canvasContainer.clientWidth;
+  const h = canvasContainer.clientHeight;
+  if (settings.backgroundMode === 'cave' && bgReady) {
+    const s = Math.max(w / bgImg.naturalWidth, h / bgImg.naturalHeight);
+    cover.scale = s;
+    cover.offsetX = (w - bgImg.naturalWidth * s) * 0.5;
+    cover.offsetY = (h - bgImg.naturalHeight * s) * 0.5;
+  } else {
+    cover.scale = 1;
+    cover.offsetX = 0;
+    cover.offsetY = 0;
+  }
+}
+
+function paintBackground() {
+  // Always fill something (dark) so the canvas is opaque
+  tree.ctx.fillStyle = '#0e0f10';
+  tree.ctx.fillRect(0, 0, tree.stageWidth, tree.stageHeight);
+
+  if (settings.backgroundMode === 'cave' && bgReady) {
+    updateCoverTransform();
+    const w = bgImg.naturalWidth  * cover.scale;
+    const h = bgImg.naturalHeight * cover.scale;
+    tree.ctx.drawImage(bgImg, cover.offsetX, cover.offsetY, w, h);
+
+    // optional: subtle dark overlay like your CSS had
+    tree.ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    tree.ctx.fillRect(0, 0, tree.stageWidth, tree.stageHeight);
+  }
+}
+
+
+// Convert canvas pixel -> image UV (0..1)
+function canvasToImageUV(pt) {
+  updateCoverTransform();
+  if (!(settings.backgroundMode === 'cave' && bgReady)) {
+    // fall back to container-relative UV if there is no image
+    return { u: pt.x / tree.stageWidth, v: pt.y / tree.stageHeight, space: 'canvas' };
+  }
+  const ix = (pt.x - cover.offsetX) / cover.scale;
+  const iy = (pt.y - cover.offsetY) / cover.scale;
+  return {
+    u: Math.min(1, Math.max(0, ix / bgImg.naturalWidth)),
+    v: Math.min(1, Math.max(0, iy / bgImg.naturalHeight)),
+    space: 'image'
+  };
+}
+
+// Convert image UV (or canvas UV) -> canvas pixel
+function uvToCanvasXY(uv) {
+  updateCoverTransform();
+
+  // Upgrade stored canvas-UV to image-UV the first time we can
+  if (uv && uv.space === 'canvas' && settings.backgroundMode === 'cave' && bgReady) {
+    const xy = { x: uv.u * tree.stageWidth, y: uv.v * tree.stageHeight };
+    const imgUV = canvasToImageUV(xy);
+    // persist the upgrade so future resizes stay locked to the image
+    uv.u = imgUV.u;
+    uv.v = imgUV.v;
+    uv.space = 'image';
+  }
+
+  // Canvas-space fallback
+  if (!uv || uv.space === 'canvas') {
+    return { x: uv.u * tree.stageWidth, y: uv.v * tree.stageHeight };
+  }
+
+  // Image-space → canvas pixels
+  const ix = uv.u * bgImg.naturalWidth;
+  const iy = uv.v * bgImg.naturalHeight;
+  return {
+    x: cover.offsetX + ix * cover.scale,
+    y: cover.offsetY + iy * cover.scale
+  };
+}
+
+
+// --- Upgrade stored UVs to image-space once the cave image is ready ---
+function upgradeAnchorToImageSpace(anchor) {
+  if (!anchor || anchor.space !== 'canvas') return anchor;
+  if (!(settings.backgroundMode === 'cave' && bgReady)) return anchor;
+  // Convert old canvas-UV (relative to stage) -> image-UV using current cover
+  const xy = { x: anchor.u * tree.stageWidth, y: anchor.v * tree.stageHeight };
+  return canvasToImageUV(xy); // returns {u,v,space:'image'}
+}
+
+function normalizeAnchorsToImageSpace() {
+  if (!(settings.backgroundMode === 'cave' && bgReady)) return;
+
+  if (lastAnchorUV) lastAnchorUV = upgradeAnchorToImageSpace(lastAnchorUV);
+  if (completedSingleTree && completedSingleTree.uv) {
+    completedSingleTree.uv = upgradeAnchorToImageSpace(completedSingleTree.uv);
+  }
+  for (let i = 0; i < growingTrees.length; i++) {
+    if (growingTrees[i].uv) growingTrees[i].uv = upgradeAnchorToImageSpace(growingTrees[i].uv);
+  }
+  for (let i = 0; i < forestTrees.length; i++) {
+    if (forestTrees[i].uv) forestTrees[i].uv = upgradeAnchorToImageSpace(forestTrees[i].uv);
+  }
+}
+
+
+
+// Tree scale that tracks window/background scale
+function scaledTreeRenderScale(treeData) {
+  const base = treeData.renderScaleBase || 1;
+  // only multiply by cover.scale when anchored to the image
+  return (treeData.uv && treeData.uv.space === 'image') ? base * cover.scale : base;
+}
+
 
 
 function stripBranches(levels) {
@@ -124,12 +262,38 @@ const settings = {
   ...defaultSettings
 };
 
+// after: const settings = { ...defaultSettings };
+
+function applyBackground() {
+  // We now render the background image directly on the canvas,
+  // so don't use the CSS background at all.
+  canvasContainer.classList.remove('bg-image');
+}
+
+
+if (controls.backgroundMode) {
+  controls.backgroundMode.value = settings.backgroundMode;
+  controls.backgroundMode.addEventListener('change', (e) => {
+    settings.backgroundMode = e.target.value;
+    applyBackground();
+    updateCoverTransform();
+    forestDirty = true;    // force one repaint
+    if (lastAnchorUV && !forestMode) redrawFromLastPoint(); // keep single tree glued
+  });
+}
+
+
+applyBackground(); // set initial background
+
+
 let autoRandomSeed = true;
 let lastClick = null;
 let forestMode = false;
 let forestTrees = []; // Array to store completed trees in forest mode
 let growingTrees = []; // Array to store trees currently growing
 let masterAnimationId = null; // ID for the master animation loop
+let completedSingleTree = null; // snapshot of last finished tree in single-tree mode
+
 
 
 const tree = new window.TreePlugin({
@@ -177,12 +341,20 @@ function applySettingsToTree() {
   tree.setSeed(parseSeedValue(settings.seed));
 }
 
-function createNewTreeData(x, y) {
-  // Create a new tree data structure for parallel growth
+function createNewTreeData(x, y, uvFromCaller) {
+  const uv = uvFromCaller || canvasToImageUV({ x, y });
+  const spawn = uvToCanvasXY(uv);
+
   const treeData = {
-    id: Date.now() + Math.random(), // Unique ID
-    treeX: x,
-    treeY: y,
+    id: Date.now() + Math.random(),
+    // anchor + position driven by UV
+    uv,
+    treeX: spawn.x,
+    treeY: spawn.y,
+    originX: spawn.x,   // <-- store planting origin
+    originY: spawn.y,
+
+    // per-tree settings
     treeTop: Infinity,
     currentDepth: 0,
     depth: settings.depth,
@@ -195,55 +367,59 @@ function createNewTreeData(x, y) {
     gradientEnd: settings.gradientEnd,
     lightDirection: settings.lightDirection,
     lightIntensity: settings.lightIntensity,
+
+    // RNG / determinism
     seed: parseSeedValue(settings.seed),
     randSeq: null,
     randCounter: 0,
     currentSeed: null,
+
     fullDepth: 11,
-    createdAt: Date.now(), // Track when tree was created
+    createdAt: Date.now(),
+
+    // render scaling (base stays constant; frame scale derives from cover)
+    renderScaleBase: settings.renderScale,
     renderScale: settings.renderScale
   };
-  
-  // Initialize random sequence if seed is provided
+
+  // Init deterministic RNG sequence if seeded
   if (treeData.seed !== undefined) {
     const value = Number(treeData.seed);
     if (Number.isFinite(value)) {
       treeData.currentSeed = value;
-      // Calculate dynamic sequence size based on tree complexity
-      // Higher depth and scale = more branches = need more random numbers
-      var baseCount = 10000;
-      var depthMultiplier = Math.pow(2, treeData.depth); // 2^depth branches at max depth
-      var scaleMultiplier = treeData.treeScale * 2; // Larger trees have more branches
-      var totalCount = Math.min(50000, Math.max(10000, baseCount * depthMultiplier * scaleMultiplier / 10));
-      
+
+      const baseCount = 10000;
+      const depthMultiplier = Math.pow(2, treeData.depth);
+      const scaleMultiplier = treeData.treeScale * 2;
+      const totalCount = Math.min(50000, Math.max(10000, (baseCount * depthMultiplier * scaleMultiplier) / 10));
+
       treeData.randSeq = [];
-      var s = value;
-      for (var i = 0; i < totalCount; i++) {
+      let s = value;
+      for (let i = 0; i < totalCount; i++) {
         s = (s * 16807) % 2147483647;
-        var rnd = (s - 1) / 2147483646;
+        const rnd = (s - 1) / 2147483646;
         treeData.randSeq.push(rnd);
       }
       treeData.randCounter = 0;
       treeData.randSeqSize = totalCount;
-      
+
       console.log(`Tree created with ${totalCount} random numbers (depth: ${treeData.depth}, scale: ${treeData.treeScale})`);
     }
   }
-  
-  // Limit the tree scale based on stage height and fullDepth
-  var maxScale = tree.stageHeight / (13 * treeData.fullDepth);
+
+  // Cap treeScale to stage height
+  const maxScale = tree.stageHeight / (13 * treeData.fullDepth);
   if (treeData.treeScale > maxScale) {
     treeData.treeScale = maxScale;
   }
-  
-  // Create branches array
-  treeData.branches = Array.from({ length: treeData.fullDepth }, function () { return []; });
-  
-  // Generate the complete tree structure
+
+  // Pre-generate structure
+  treeData.branches = Array.from({ length: treeData.fullDepth }, () => []);
   createBranchForTreeData(treeData, treeData.treeX, treeData.treeY, -90, 0);
-  
+
   return treeData;
 }
+
 
 function createBranchForTreeData(treeData, startX, startY, angle, depth) {
   // Stop recursion when reaching the full depth
@@ -352,13 +528,18 @@ function getBranchStrokeStyleForTreeData(ctx, branch, treeData, renderScale = 1)
 
   var shade = getShadeFactorForTreeData(branch, treeData);
   if (treeData.colorMode === "gradient") {
+    // Colors (unchanged)
     var startColor = applyShadingForTreeData(getColorAtYForTreeData(branch.startY, treeData), shade, treeData);
-    var endColor = applyShadingForTreeData(getColorAtYForTreeData(branch.endY, treeData), shade, treeData);
-    // use scaled endpoints for gradient vector
-    const s  = renderScale || 1;
+    var endColor   = applyShadingForTreeData(getColorAtYForTreeData(branch.endY,   treeData), shade, treeData);
+    // ✅ Build gradient in *final canvas coords* using the same transform
+    // we use to draw branches: scale about (treeX, treeY) + anchor delta translate.
+    const s  = scaledTreeRenderScale(treeData);               // same scale used to draw
+    const dx = treeData.treeX - (treeData.originX ?? treeData.treeX);
+    const dy = treeData.treeY - (treeData.originY ?? treeData.treeY);
     const p0 = scalePoint(branch.startX, branch.startY, treeData.treeX, treeData.treeY, s);
     const p1 = scalePoint(branch.endX,   branch.endY,   treeData.treeX, treeData.treeY, s);
-
+    p0.x += dx; p0.y += dy;
+    p1.x += dx; p1.y += dy;
     const gradient = ctx.createLinearGradient(p0.x, p0.y, p1.x, p1.y);
     gradient.addColorStop(0, rgbToHex(startColor));
     gradient.addColorStop(1, rgbToHex(endColor));
@@ -370,42 +551,39 @@ function getBranchStrokeStyleForTreeData(ctx, branch, treeData, renderScale = 1)
 }
 
 function getShadeFactorForTreeData(branch, treeData) {
-  var angleRad = treeData.lightDirection * (Math.PI / 180);
-  var lightX = Math.cos(angleRad);
-  var lightY = Math.sin(angleRad);
-  var midX = branch.midX;
-  var midY = branch.midY;
-  var centerX = treeData.treeX;
-  var centerY;
-  if (Number.isFinite(treeData.treeTop)) {
-    centerY = (treeData.treeY + treeData.treeTop) / 2;
-  } else {
-    centerY = treeData.treeY;
-  }
-  var vecX = midX - centerX;
-  var vecY = midY - centerY;
-  var len = Math.sqrt(vecX * vecX + vecY * vecY);
-  if (len > 0) {
-    vecX /= len;
-    vecY /= len;
-  }
-  var dot = vecX * (-lightX) + vecY * (-lightY);
+  const angleRad = treeData.lightDirection * (Math.PI / 180);
+  const lightX = Math.cos(angleRad);
+  const lightY = Math.sin(angleRad);
+  // Work entirely in planting/object space:
+  const midX = branch.midX;
+  const midY = branch.midY;
+  const baseX = (treeData.originX ?? treeData.treeX);
+  const baseY = (treeData.originY ?? treeData.treeY);
+  const centerY = Number.isFinite(treeData.treeTop) ? (baseY + treeData.treeTop) / 2 : baseY;
+  let vecX = midX - baseX;
+  let vecY = midY - centerY;
+  const len = Math.hypot(vecX, vecY) || 1;
+  vecX /= len; vecY /= len;
+  const dot = vecX * (-lightX) + vecY * (-lightY);
   return clamp01((dot + 1) / 2);
 }
 
 function getColorAtYForTreeData(y, treeData) {
-  var start = hexToRgb(treeData.gradientStart);
-  var end = hexToRgb(treeData.gradientEnd);
-  if (!start || !end) {
-    return start || end || [0, 0, 0];
-  }
-  if (!Number.isFinite(treeData.treeY) || !Number.isFinite(treeData.treeTop) || treeData.treeY === treeData.treeTop) {
+  const start = hexToRgb(treeData.gradientStart);
+  const end   = hexToRgb(treeData.gradientEnd);
+  if (!start || !end) return start || end || [0, 0, 0];
+
+  // Use planting origin as the fixed reference so resizes don’t change the mix
+  const baseY = (treeData.originY ?? treeData.treeY);
+
+  if (!Number.isFinite(baseY) || !Number.isFinite(treeData.treeTop) || baseY === treeData.treeTop) {
     return start.slice();
   }
-  var ratio = (treeData.treeY - y) / (treeData.treeY - treeData.treeTop);
+  let ratio = (baseY - y) / (baseY - treeData.treeTop);
   ratio = clamp01(ratio);
   return mixRgb(start, end, ratio);
 }
+
 
 function applyShadingForTreeData(rgb, shade, treeData) {
   if (!rgb) return [0, 0, 0];
@@ -466,16 +644,18 @@ function startMasterAnimation() {
   function masterAnimate() {
     const startTime = performance.now();
     
-    // Clear canvas first (only if not in forest mode)
-    if (!forestMode && growingTrees.length === 0 && forestTrees.length === 0) {
-      tree.clearCanvas();
-    }
-    
-    // Draw all forest trees first (background)
-    if (forestMode && forestDirty) {
-      drawForestTrees();    // paints existing forest once
+    // Clear and paint background every frame
+    tree.clearCanvas();
+    paintBackground();
+
+    // Keep content visible after the clear:
+    if (forestMode) {
+      drawForestTrees();         // draw forest EVERY frame so it never vanishes
       forestDirty = false;
+    } else if (completedSingleTree && !growingTrees.length) {
+      drawCompletedSingleTree(); // keep last tree visible in single-tree mode
     }
+
     
     // Animate all growing trees
     let hasGrowingTrees = false;
@@ -500,19 +680,22 @@ function startMasterAnimation() {
       }
       
       let stillGrowing = animateTreeData(treeData);
+      if (stillGrowing) hasGrowingTrees = true;  
       
       if (!stillGrowing) {
         // Tree is fully grown, remove from growing list
         growingTrees.splice(i, 1);
         completedCount++;
-        
-        // Store completed tree if in forest mode
+      
         if (forestMode) {
+          // Forest: keep it in the forest layer
           storeCompletedTreeFromData(treeData);
+          forestDirty = true;
+        } else {
+          // Single-tree mode: keep a snapshot so it survives resizes
+          completedSingleTree = snapshotFromTreeData(treeData);
         }
-      } else {
-        hasGrowingTrees = true;
-      }
+      }      
     }
     
     // Performance monitoring
@@ -540,52 +723,60 @@ function startMasterAnimation() {
 let frameCount = 0; // For performance monitoring
 
 function animateTreeData(treeData) {
-  const s = treeData.renderScale || 1;
+  // Lock to background and compute per-frame scale once
+  if (treeData.uv) {
+    const p = uvToCanvasXY(treeData.uv);
+    treeData.treeX = p.x;
+    treeData.treeY = p.y;
+  }
+  const s = scaledTreeRenderScale(treeData);
 
-  // scale around trunk base
+  // Apply a single transform for the whole draw
   tree.ctx.save();
   tree.ctx.translate(treeData.treeX, treeData.treeY);
   tree.ctx.scale(s, s);
   tree.ctx.translate(-treeData.treeX, -treeData.treeY);
+  // Shift geometry from old origin -> new origin before scaling-about-new-origin
+  const dx = treeData.treeX - treeData.originX;
+  const dy = treeData.treeY - treeData.originY;
+  tree.ctx.translate(dx, dy);
+  let stillGrowing = false;
 
-  const reStrokeCompleted = false;
-  if (reStrokeCompleted) {
-    for (var d = 0; d < treeData.currentDepth; d++) {
-      if (d >= treeData.depth) break;
-      for (var k = 0; k < treeData.branches[d].length; k++) {
-        var branch = treeData.branches[d][k];
+  // Draw fully completed depths (0 .. currentDepth-1)
+  for (let d = 0; d < treeData.currentDepth && d < treeData.depth; d++) {
+    for (let k = 0; k < treeData.branches[d].length; k++) {
+      const branch = treeData.branches[d][k];
+      tree.ctx.beginPath();
+      tree.ctx.moveTo(branch.startX, branch.startY);
+      tree.ctx.lineTo(branch.endX, branch.endY);
+      tree.ctx.lineWidth = branch.lineWidth;
+      tree.ctx.strokeStyle = getBranchStrokeStyleForTreeData(tree.ctx, branch, treeData);
+      tree.ctx.stroke();
+      tree.ctx.closePath();
+    }
+  }
+
+  // Animate the current depth
+  if (treeData.currentDepth < treeData.depth) {
+    let currentDone = true;
+
+    for (let k = 0; k < treeData.branches[treeData.currentDepth].length; k++) {
+      const branch = treeData.branches[treeData.currentDepth][k];
+      if (branch.cntFrame < branch.frame) {
+        branch.draw(tree.ctx, treeData.growthSpeed); // updates its own cntFrame
+        stillGrowing = true;
+        currentDone = false;
+      } else {
         tree.ctx.beginPath();
         tree.ctx.moveTo(branch.startX, branch.startY);
         tree.ctx.lineTo(branch.endX, branch.endY);
         tree.ctx.lineWidth = branch.lineWidth;
-        tree.ctx.strokeStyle = getBranchStrokeStyleForTreeData(tree.ctx, branch, treeData); // no 's'
+        tree.ctx.strokeStyle = getBranchStrokeStyleForTreeData(tree.ctx, branch, treeData);
         tree.ctx.stroke();
         tree.ctx.closePath();
       }
     }
-  }
 
-  var stillGrowing = false;
-  if (treeData.currentDepth < treeData.depth) {
-    var currentDone = true;
-    for (var k = 0; k < treeData.branches[treeData.currentDepth].length; k++) {
-      var branch = treeData.branches[treeData.currentDepth][k];
-      if (branch.cntFrame < branch.frame) {
-        // Let the branch draw itself (no manual extra path)
-        branch.draw(tree.ctx, treeData.growthSpeed);
-        stillGrowing = true;
-        currentDone = false;
-      } else {
-        // fully drawn
-        tree.ctx.beginPath();
-        tree.ctx.moveTo(branch.startX, branch.startY);
-        tree.ctx.lineTo(branch.endX,   branch.endY);
-        tree.ctx.lineWidth   = branch.lineWidth;
-        tree.ctx.strokeStyle = getBranchStrokeStyleForTreeData(tree.ctx, branch, treeData); // no 's'
-        tree.ctx.stroke();
-        tree.ctx.closePath();
-      }
-    }
     if (currentDone) {
       treeData.currentDepth++;
       stillGrowing = true;
@@ -596,35 +787,26 @@ function animateTreeData(treeData) {
     }
   }
 
-  tree.ctx.restore();
+  tree.ctx.restore(); // exactly one restore for one save
   return stillGrowing;
 }
 
 
-function drawTreeAt(x, y) {
+
+function drawTreeAt(x, y, opts) {
   applySettingsToTree();
-  
-  // No limit on growing trees - let the forest grow freely!
-  // Removed artificial limits to allow unlimited tree creation
-  
-  // Create a new tree data structure for parallel growth
-  const treeData = createNewTreeData(x, y);
-  
-  // Add to growing trees list
+  const treeData = createNewTreeData(x, y, opts?.uv);
   growingTrees.push(treeData);
-  
-  // Start master animation if not already running
   startMasterAnimation();
 }
 
-function storeCompletedTreeFromData(treeData) {
-  if (!forestMode) return;
-  
-  // Create a snapshot of the tree data
-  const completedTree = {
+function snapshotFromTreeData(treeData) {
+  return {
     branches: stripBranches(treeData.branches.slice(0, treeData.depth)),
     treeX: treeData.treeX,
     treeY: treeData.treeY,
+    originX: treeData.originX,
+    originY: treeData.originY,
     treeTop: treeData.treeTop,
     depth: treeData.depth,
     treeScale: treeData.treeScale,
@@ -636,7 +818,37 @@ function storeCompletedTreeFromData(treeData) {
     lightDirection: treeData.lightDirection,
     lightIntensity: treeData.lightIntensity,
     seed: treeData.seed,
-    renderScale: treeData.renderScale
+    renderScale: treeData.renderScale,
+    renderScaleBase: treeData.renderScaleBase,
+    uv: treeData.uv
+  };
+}
+
+
+function storeCompletedTreeFromData(treeData) {
+  if (!forestMode) return;
+  
+  // Create a snapshot of the tree data
+  const completedTree = {
+    branches: stripBranches(treeData.branches.slice(0, treeData.depth)),
+    treeX: treeData.treeX,
+    treeY: treeData.treeY,
+    originX: treeData.originX,
+    originY: treeData.originY,
+    treeTop: treeData.treeTop,
+    depth: treeData.depth,
+    treeScale: treeData.treeScale,
+    branchWidth: treeData.branchWidth,
+    colorMode: treeData.colorMode,
+    color: treeData.color,
+    gradientStart: treeData.gradientStart,
+    gradientEnd: treeData.gradientEnd,
+    lightDirection: treeData.lightDirection,
+    lightIntensity: treeData.lightIntensity,
+    seed: treeData.seed,
+    renderScale: treeData.renderScale,
+    renderScaleBase: treeData.renderScaleBase,
+    uv: treeData.uv
   };
   
   forestTrees.push(completedTree);
@@ -692,14 +904,26 @@ function storeCompletedTree() {
 }
 
 function drawForestTrees() {
+  tree.clearCanvas();
+  paintBackground();
+
   if (!forestMode || forestTrees.length === 0) return;
 
   forestTrees.forEach(t => {
-    const s = t.renderScale || 1;
+    // Recompute from UV
+    if (t.uv) {
+      const p = uvToCanvasXY(t.uv);
+      t.treeX = p.x; t.treeY = p.y;
+    }
+    const s = scaledTreeRenderScale(t);
+
     tree.ctx.save();
     tree.ctx.translate(t.treeX, t.treeY);
     tree.ctx.scale(s, s);
     tree.ctx.translate(-t.treeX, -t.treeY);
+    const dx = t.treeX - (t.originX ?? t.treeX);
+    const dy = t.treeY - (t.originY ?? t.treeY);
+    tree.ctx.translate(dx, dy);
 
     for (let d = 0; d < t.depth && d < t.branches.length; d++) {
       for (let k = 0; k < t.branches[d].length; k++) {
@@ -716,6 +940,47 @@ function drawForestTrees() {
 
     tree.ctx.restore();
   });
+}
+
+
+function drawCompletedSingleTree() {
+  tree.clearCanvas();
+  paintBackground();
+
+  const t = completedSingleTree;
+  if (!t) return;
+
+  if (t.uv) {
+    const p = uvToCanvasXY(t.uv);
+    t.treeX = p.x;
+    t.treeY = p.y;
+  }
+  const s = scaledTreeRenderScale(t);
+
+  tree.ctx.save();
+  tree.ctx.translate(t.treeX, t.treeY);
+  tree.ctx.scale(s, s);
+  tree.ctx.translate(-t.treeX, -t.treeY);
+
+  // ✅ anchor fix for completed single tree
+  const dx = t.treeX - (t.originX ?? t.treeX);
+  const dy = t.treeY - (t.originY ?? t.treeY);
+  tree.ctx.translate(dx, dy);
+
+  for (let d = 0; d < t.depth && d < t.branches.length; d++) {
+    for (let k = 0; k < t.branches[d].length; k++) {
+      const branch = t.branches[d][k];
+      tree.ctx.beginPath();
+      tree.ctx.moveTo(branch.startX, branch.startY);
+      tree.ctx.lineTo(branch.endX, branch.endY);
+      tree.ctx.lineWidth = branch.lineWidth;
+      tree.ctx.strokeStyle = getBranchStrokeStyleForTreeData(tree.ctx, branch, t);
+      tree.ctx.stroke();
+      tree.ctx.closePath();
+    }
+  }
+
+  tree.ctx.restore();
 }
 
 
@@ -736,11 +1001,16 @@ function redrawFromLastPoint() {
     forestTrees = [];
   }
   
-  if (lastClick) {
-    drawTreeAt(lastClick.x, lastClick.y);
-  } else {
-    drawTreeAt();
+  if (lastAnchorUV) {
+    const spawn = uvToCanvasXY(lastAnchorUV);
+    drawTreeAt(spawn.x, spawn.y, { uv: lastAnchorUV });
+  } else if (lastClick) {
+    // Fall back to converting the old pixel click to UV once
+    const uv = canvasToImageUV(lastClick);
+    const spawn = uvToCanvasXY(uv);
+    drawTreeAt(spawn.x, spawn.y, { uv });
   }
+  
 }
 
 function withCanvasPosition(evt) {
@@ -774,7 +1044,6 @@ function refreshControls() {
   controls.autoSeed.checked = autoRandomSeed;
   controls.forestMode.checked = forestMode;
   updateColorInputsVisibility();
-  controls.renderScale.value = String(settings.renderScale ?? 1);
   const s = String(settings.renderScale ?? 1);
   if (controls.renderScaleInput) controls.renderScaleInput.value = s;
   if (controls.renderScaleRange) controls.renderScaleRange.value = s;
@@ -861,10 +1130,11 @@ function syncSettingsFromInputs() {
 }
 
 function onRenderScaleChange(val) {
-  settings.renderScale = clamp(Number(val) || 1, 0.02, 8);
+  settings.renderScale = clamp(Number(val) || 1, 0.02, 3);
   if (controls.renderScaleInput) controls.renderScaleInput.value = String(settings.renderScale);
   if (controls.renderScaleRange) controls.renderScaleRange.value  = String(settings.renderScale);
   if (lastClick) redrawFromLastPoint();
+  if (completedSingleTree) { completedSingleTree.renderScaleBase = settings.renderScale; drawCompletedSingleTree(); }
 }
 
 if (controls.renderScaleInput) {
@@ -953,6 +1223,7 @@ controls.redrawBtn.addEventListener('click', () => redrawFromLastPoint());
 controls.randomizeTreeBtn.addEventListener('click', () => randomizeTreeSettings());
 controls.randomizeSeedBtn.addEventListener('click', () => randomizeSeed());
 function clearCanvas() {
+  completedSingleTree = null;
   // Stop master animation
   if (masterAnimationId) {
     cancelAnimationFrame(masterAnimationId);
@@ -980,36 +1251,56 @@ canvas.addEventListener('mousedown', (evt) => {
     setSeedValue(randomInt(1, 999_999_999), { refresh: true, redraw: false });
   }
   lastClick = pos;
-  
-  // In non-forest mode, clear existing trees before starting new one
+
+  // NEW: compute persistent UV anchor
+  lastAnchorUV = canvasToImageUV(pos);
+
   if (!forestMode) {
-    // Stop master animation
-    if (masterAnimationId) {
-      cancelAnimationFrame(masterAnimationId);
-      masterAnimationId = null;
-    }
-    
-    // Clear growing trees
+    completedSingleTree = null; // starting a fresh growth
+    if (masterAnimationId) { cancelAnimationFrame(masterAnimationId); masterAnimationId = null; }
     growingTrees = [];
-    
-    // Clear canvas
     tree.clearCanvas();
     forestTrees = [];
   }
-  
-  drawTreeAt(pos.x, pos.y);
+
+  // pass the UV anchor down so the tree stores it
+  drawTreeAt(pos.x, pos.y, { uv: lastAnchorUV });
 });
 
+
 window.addEventListener('resize', () => {
-  if (forestMode) {
-    tree.clearCanvas();  // clear pixels
-    forestDirty = true;  // repaint forest once next frame
+  // 1) Resize the canvas FIRST so stageWidth/Height are fresh
+  if (typeof tree.resize === 'function') tree.resize();
+
+  // 2) Recompute CSS cover transform for the new container size
+  updateCoverTransform();
+
+  // 3) Permanently upgrade any old canvas-space anchors to image-space
+  normalizeAnchorsToImageSpace();
+
+  // 4) Redraw whatever exists (don’t auto-spawn a new tree)
+  tree.clearCanvas();
+
+  if (forestMode && forestTrees.length) {
+    forestDirty = true;
+    drawForestTrees();
+    return;
   }
-  if (!lastClick) return;
-  window.requestAnimationFrame(() => {
-    drawTreeAt(lastClick.x, lastClick.y);
-  });
+
+  if (growingTrees.length) {
+    startMasterAnimation();
+    return;
+  }
+
+  if (completedSingleTree) {
+    drawCompletedSingleTree();
+    return;
+  }
 });
+
+
+
+
 
 
 async function savePreset() {
@@ -1030,6 +1321,35 @@ async function loadPreset() {
     console.error('Failed to load preset:', error);
   }
 }
+
+// Build a linear gradient in tree-local coordinates.
+// Call this AFTER you've applied the transform for the tree.
+function makeTreeGradient(ctx, t) {
+  // Direction and length are in "tree units" so the look is stable across resizes
+  const L = t.lightDir || { x: 0.6, y: -0.8 };  // unit-ish light direction
+  const len = t.lightRange || 380;              // how far light fades across the tree
+
+  // Center the gradient roughly around the seed/origin
+  const cx = t.originX ?? t.treeX;
+  const cy = t.originY ?? t.treeY;
+
+  const x0 = cx - L.x * len;
+  const y0 = cy - L.y * len;
+  const x1 = cx + L.x * len;
+  const y1 = cy + L.y * len;
+
+  const g = ctx.createLinearGradient(x0, y0, x1, y1);
+
+  // Use your existing palette or keep deterministic per-tree stops
+  const stops = t.lightStops || [
+    { p: 0.00, c: '#ffe5be' },  // highlight
+    { p: 0.45, c: '#c88a5a' },  // mid
+    { p: 1.00, c: '#2a1c12' },  // shadow
+  ];
+  for (const s of stops) g.addColorStop(s.p, s.c);
+  return g;
+}
+
 
 function applyPreset(preset) {
   if (!preset || typeof preset !== 'object') return;

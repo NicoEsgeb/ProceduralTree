@@ -37,6 +37,16 @@ body {
   cursor: crosshair;
 }
 
+.canvas-container.bg-image {
+  background:
+    linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)),
+    url('assets/CaveImages/cave1.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+
 .pane-container {
   position: absolute;
   top: 16px;
