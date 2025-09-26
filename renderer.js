@@ -234,6 +234,18 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+// Depth sort key: top (far) first, bottom (near) last
+function depthSortKey(t) {
+  // Prefer image-space V if we have it, otherwise normalise by canvas height
+  if (t && t.uv && typeof t.uv.v === 'number') {
+    return t.uv.v;             // 0 = top (far), 1 = bottom (near)
+  }
+  // Fallback: use current Y in canvas space
+  const y = (t && Number.isFinite(t.treeY)) ? t.treeY : 0;
+  return y / Math.max(1, tree.stageHeight);
+}
+
+
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -386,11 +398,27 @@ function repaintStaticLayer() {
 
   // Finished forest (draw once)
   if (forestMode && forestTrees.length) {
-    forestTrees.forEach(t => {
+    // Build draw list with current (x,y) and sort by depth if Depth Mode is ON
+    const drawList = forestTrees.map(t => {
+      // Recompute canvas-space position from UV for this frame
+      let x = t.treeX, y = t.treeY;
       if (t.uv) {
         const p = uvToCanvasXY(t.uv);
-        t.treeX = p.x; t.treeY = p.y;
+        x = p.x; y = p.y;
       }
+      return { t, x, y };
+    });
+
+    if (settings.depthMode) {
+      drawList.sort((a, b) => depthSortKey(a.t) - depthSortKey(b.t));
+    }
+
+    for (const item of drawList) {
+      const t = item.t;
+      // Persist the recomputed position so branch shaders/gradients stay consistent
+      t.treeX = item.x; 
+      t.treeY = item.y;
+
       const s = scaledTreeRenderScale(t);
       staticCtx.save();
       staticCtx.translate(t.treeX, t.treeY);
@@ -399,6 +427,7 @@ function repaintStaticLayer() {
       const dx = t.treeX - (t.originX ?? t.treeX);
       const dy = t.treeY - (t.originY ?? t.treeY);
       staticCtx.translate(dx, dy);
+
       for (let d = 0; d < t.depth && d < t.branches.length; d++) {
         for (let k = 0; k < t.branches[d].length; k++) {
           const b = t.branches[d][k];
@@ -411,8 +440,9 @@ function repaintStaticLayer() {
         }
       }
       staticCtx.restore();
-    });
+    }
   }
+
 
   staticDirty = false;
 }
@@ -780,42 +810,79 @@ function startMasterAnimation() {
     let hasGrowingTrees = false;
     let completedCount = 0;
     const currentTime = Date.now();
-    
+
+    // 0) Pre-pass: force-complete any stuck trees (keep your old behaviour)
     for (let i = growingTrees.length - 1; i >= 0; i--) {
       const treeData = growingTrees[i];
       const treeAge = currentTime - treeData.createdAt;
-      
-      // Force completion if tree has been growing for more than 30 seconds
+
       if (treeAge > 30000) {
         console.warn(`Force completing stuck tree after ${treeAge}ms`);
         growingTrees.splice(i, 1);
         completedCount++;
-        
-        // Store completed tree if in forest mode
         if (forestMode) {
-          storeCompletedTreeFromData(treeData);
-        }
-        continue;
-      }
-      
-      let stillGrowing = animateTreeData(treeData);
-      if (stillGrowing) hasGrowingTrees = true;  
-      
-      if (!stillGrowing) {
-        // Tree is fully grown, remove from growing list
-        growingTrees.splice(i, 1);
-        completedCount++;
-      
-        if (forestMode) {
-          // Forest: keep it in the forest layer
           storeCompletedTreeFromData(treeData);
           forestDirty = true;
         } else {
-          // Single-tree mode: keep a snapshot so it survives resizes
           completedSingleTree = snapshotFromTreeData(treeData);
         }
-      }      
+      }
     }
+
+    // 1) Build draw order
+    //    - If Depth Mode ON: top (far/smaller) first → bottom (near/larger) last
+    //    - If Depth Mode OFF: keep original reversed ordering (most recent first)
+    const order = (() => {
+      if (!settings.depthMode) {
+        // mimic your original reverse loop visually
+        return growingTrees.map((t, idx) => ({ idx, key: -idx }))
+                           .sort((a, b) => a.key - b.key);
+      }
+
+      // Depth mode: use uv.v if present, otherwise normalise y by canvas height
+      return growingTrees.map((t, idx) => {
+        let v;
+        if (t.uv && typeof t.uv.v === 'number') {
+          v = t.uv.v; // 0 = top (far), 1 = bottom (near)
+        } else {
+          const y = t.uv ? uvToCanvasXY(t.uv).y : (t.treeY || 0);
+          v = y / Math.max(1, tree.stageHeight);
+        }
+        return { idx, key: v };
+      }).sort((a, b) => a.key - b.key); // far → near
+    })();
+
+    // 2) Draw in the chosen order and collect finished indices
+    const finished = [];
+    for (const { idx } of order) {
+      const treeData = growingTrees[idx];
+      if (!treeData) continue; // may have been removed in pre-pass
+
+      const stillGrowing = animateTreeData(treeData); // draws this tree
+      if (stillGrowing) {
+        hasGrowingTrees = true;
+      } else {
+        finished.push(idx);
+      }
+    }
+
+    // 3) Remove finished trees and persist them as before
+    if (finished.length) {
+      finished.sort((a, b) => b - a).forEach(i => {
+        const treeData = growingTrees[i];
+        if (!treeData) return;
+        growingTrees.splice(i, 1);
+        completedCount++;
+
+        if (forestMode) {
+          storeCompletedTreeFromData(treeData);
+          forestDirty = true;
+        } else {
+          completedSingleTree = snapshotFromTreeData(treeData);
+        }
+      });
+    }
+
     
     // Performance monitoring
     const endTime = performance.now();
@@ -1038,17 +1105,23 @@ function storeCompletedTree() {
 function drawForestTrees() {
   tree.clearCanvas();
   paintBackground();
-
   if (!forestMode || forestTrees.length === 0) return;
 
-  forestTrees.forEach(t => {
-    // Recompute from UV
+  // Prepare a sorted list when Depth Mode is ON
+  const drawList = forestTrees.map(t => {
     if (t.uv) {
       const p = uvToCanvasXY(t.uv);
       t.treeX = p.x; t.treeY = p.y;
     }
-    const s = scaledTreeRenderScale(t);
+    return t;
+  });
 
+  if (settings.depthMode) {
+    drawList.sort((a, b) => depthSortKey(a) - depthSortKey(b));
+  }
+
+  for (const t of drawList) {
+    const s = scaledTreeRenderScale(t);
     tree.ctx.save();
     tree.ctx.translate(t.treeX, t.treeY);
     tree.ctx.scale(s, s);
@@ -1059,20 +1132,20 @@ function drawForestTrees() {
 
     for (let d = 0; d < t.depth && d < t.branches.length; d++) {
       for (let k = 0; k < t.branches[d].length; k++) {
-        const branch = t.branches[d][k];
+        const b = t.branches[d][k];
         tree.ctx.beginPath();
-        tree.ctx.moveTo(branch.startX, branch.startY);
-        tree.ctx.lineTo(branch.endX, branch.endY);
-        tree.ctx.lineWidth = branch.lineWidth;
-        tree.ctx.strokeStyle = getBranchStrokeStyleForTreeData(tree.ctx, branch, t); // no 's'
+        tree.ctx.moveTo(b.startX, b.startY);
+        tree.ctx.lineTo(b.endX, b.endY);
+        tree.ctx.lineWidth = b.lineWidth;
+        tree.ctx.strokeStyle = getBranchStrokeStyleForTreeData(tree.ctx, b, t);
         tree.ctx.stroke();
         tree.ctx.closePath();
       }
     }
-
     tree.ctx.restore();
-  });
+  }
 }
+
 
 
 function drawCompletedSingleTree() {
