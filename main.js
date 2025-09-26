@@ -102,7 +102,13 @@ app.on('window-all-closed', () => {
 });
 
 function sanitizePreset(preset) {
-  const allowedKeys = ['depth', 'growthSpeed', 'treeScale', 'branchWidth', 'colorMode', 'color', 'gradientStart', 'gradientEnd', 'seed'];
+  
+  const allowedKeys = [
+    'depth','growthSpeed','treeScale','branchWidth',
+    'colorMode','color','gradientStart','gradientEnd','seed',
+    'lightDirection','lightIntensity','renderScale',
+    'backgroundMode','depthMode','depthStrength'
+  ];  
   return allowedKeys.reduce((acc, key) => {
     if (Object.prototype.hasOwnProperty.call(preset, key)) {
       acc[key] = preset[key];

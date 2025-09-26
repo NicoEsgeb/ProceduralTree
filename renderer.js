@@ -11,7 +11,9 @@ const defaultSettings = {
   lightDirection: 315,
   lightIntensity: 0.5,
   renderScale: 1,
-  backgroundMode: 'dark'
+  backgroundMode: 'dark',
+  depthMode: false,          
+  depthStrength: 0.6         // NEW (0..~1.2 feels good)
 };
 
 let forestDirty = false;                // draw forest layer only when it changes
@@ -57,7 +59,10 @@ const controls = {
   loadPresetBtn: document.querySelector('#load-preset-btn'),
   renderScaleInput: document.querySelector('#render-scale-input'),
   renderScaleRange: document.querySelector('#render-scale-range'),
-  backgroundMode: document.querySelector('#background-mode-input')
+  backgroundMode: document.querySelector('#background-mode-input'),
+  depthMode: document.querySelector('#depth-mode-input'),              
+  depthStrength: document.querySelector('#depth-strength-input'),      
+  depthStrengthGroup: document.querySelector('#depth-strength-group')
 };
 
 // === Background image meta & "cover" transform ===
@@ -440,6 +445,12 @@ function createNewTreeData(x, y, uvFromCaller) {
   const spawn = uvToCanvasXY(uv);
   const baseColorHex = sampleBaseColorHexAtUV(uv);
 
+  // NEW: depth-based extra scale (affects this tree only)
+  let rsBase = settings.renderScale;
+  if (settings.depthMode && uv) {
+    rsBase *= depthScaleForUV(uv);
+  }
+
   const treeData = {
     id: Date.now() + Math.random(),
     // anchor + position driven by UV
@@ -474,8 +485,8 @@ function createNewTreeData(x, y, uvFromCaller) {
     createdAt: Date.now(),
 
     // render scaling (base stays constant; frame scale derives from cover)
-    renderScaleBase: settings.renderScale,
-    renderScale: settings.renderScale
+    renderScaleBase: rsBase,
+    renderScale: rsBase    
   };
 
   // Init deterministic RNG sequence if seeded
@@ -1104,6 +1115,15 @@ function drawCompletedSingleTree() {
   tree.ctx.restore();
 }
 
+function depthScaleForUV(uv) {
+  const v = Math.min(1, Math.max(0, uv?.v ?? 1));
+  const s = clamp(Number(settings.depthStrength) || 0, 0, 3); // was 1.5
+  const minFactor = Math.max(0.02, 1 - s);                    // was 0.1 → allow much smaller at top
+  const gamma = 1 + s * 0.8;                                  // curve for extra punch
+  const shaped = Math.pow(v, gamma);
+  return minFactor + (1 - minFactor) * shaped;
+}
+
 
 
 function redrawFromLastPoint() {
@@ -1180,6 +1200,10 @@ function refreshControls() {
   controls.seed.value = settings.seed ?? '';
   controls.autoSeed.checked = autoRandomSeed;
   controls.forestMode.checked = forestMode;
+  if (controls.depthMode) controls.depthMode.checked = settings.depthMode;
+  if (controls.depthStrength) controls.depthStrength.value = String(settings.depthStrength);
+  updateColorInputsVisibility();
+  updateDepthControlsVisibility();
   updateColorInputsVisibility();
   const s = String(settings.renderScale ?? 1);
   if (controls.renderScaleInput) controls.renderScaleInput.value = s;
@@ -1258,7 +1282,10 @@ function syncSettingsFromInputs() {
     settings.lightIntensity = clamp(rawIntensity, 0, 1);
   }
   const cm = controls.colorMode.value;
-  settings.colorMode = (cm === 'solid' || cm === 'baseGradient') ? cm : 'gradient';  
+  settings.colorMode = (cm === 'solid' || cm === 'baseGradient') ? cm : 'gradient'; 
+  settings.depthMode = !!(controls.depthMode && controls.depthMode.checked);
+  settings.depthStrength = clamp(Number(controls.depthStrength?.value) || 0.6, 0, 3);
+  updateDepthControlsVisibility(); 
   settings.color = sanitizeColor(controls.color.value, settings.color);
   settings.gradientStart = sanitizeColor(controls.gradientStart.value, settings.gradientStart);
   settings.gradientEnd = sanitizeColor(controls.gradientEnd.value, settings.gradientEnd);
@@ -1266,6 +1293,27 @@ function syncSettingsFromInputs() {
   settings.seed = seedInputValue;
   updateColorInputsVisibility();
 }
+
+if (controls.depthMode) {
+  controls.depthMode.addEventListener('change', () => {
+    syncSettingsFromInputs();
+    // Depth Mode affects trees you plant from now on.
+  });
+}
+if (controls.depthStrength) {
+  controls.depthStrength.addEventListener('input', () => {
+    syncSettingsFromInputs();
+    // Strength affects new trees; existing ones keep their planted scale.
+  });
+}
+
+
+function updateDepthControlsVisibility() {
+  if (controls.depthStrengthGroup) {
+    controls.depthStrengthGroup.style.display = settings.depthMode ? 'flex' : 'none';
+  }
+}
+
 
 function onRenderScaleChange(val) {
   settings.renderScale = clamp(Number(val) || 1, 0.02, 3);
