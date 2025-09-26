@@ -73,6 +73,8 @@ bgImg.onload = () => {
 
   // Repaint whatever is on screen
   tree.clearCanvas();
+  staticDirty = true;
+  repaintStaticLayer();
   if (forestMode && forestTrees.length) { forestDirty = true; drawForestTrees(); }
   else if (growingTrees.length) { startMasterAnimation(); }
   else { drawCompletedSingleTree(); }
@@ -158,6 +160,25 @@ function uvToCanvasXY(uv) {
     y: cover.offsetY + iy * cover.scale
   };
 }
+
+function sampleBaseColorHexAtUV(uv) {
+  // Make sure the static background is up-to-date
+  repaintStaticLayer();
+
+  const p = uvToCanvasXY(uv);
+  // getImageData uses device pixels; staticCtx is scaled by pixelRatio
+  const dx = Math.max(0, Math.min(staticCanvas.width  - 1, Math.round(p.x * tree.pixelRatio)));
+  const dy = Math.max(0, Math.min(staticCanvas.height - 1, Math.round(p.y * tree.pixelRatio)));
+
+  try {
+    const data = staticCtx.getImageData(dx, dy, 1, 1).data; // [r,g,b,a]
+    return rgbToHex([data[0], data[1], data[2]]);
+  } catch (_e) {
+    // Fallback to current configured start if sampling fails
+    return settings.gradientStart;
+  }
+}
+
 
 
 // --- Upgrade stored UVs to image-space once the cave image is ready ---
@@ -277,7 +298,9 @@ if (controls.backgroundMode) {
     settings.backgroundMode = e.target.value;
     applyBackground();
     updateCoverTransform();
-    forestDirty = true;    // force one repaint
+    forestDirty = true;
+    staticDirty = true;
+    repaintStaticLayer();  // force one repaint
     if (lastAnchorUV && !forestMode) redrawFromLastPoint(); // keep single tree glued
   });
 }
@@ -319,6 +342,77 @@ tree.clearCanvas();
 
 canvas = canvasContainer.querySelector('canvas');
 
+let staticCanvas = document.createElement('canvas');
+let staticCtx = staticCanvas.getContext('2d');
+staticCanvas.style.position = 'absolute';
+staticCanvas.style.inset = '0';
+canvasContainer.insertBefore(staticCanvas, canvas); // behind the live canvas
+
+// ✅ Make sure layering + input are correct
+staticCanvas.style.zIndex = '0';
+staticCanvas.style.pointerEvents = 'none';   // <-- let clicks pass through
+canvas.style.position = 'absolute';
+canvas.style.inset = '0';
+canvas.style.zIndex = '1';
+
+let staticDirty = true;
+function resizeStatic() {
+  staticCanvas.width  = tree.stageWidth * tree.pixelRatio;
+  staticCanvas.height = tree.stageHeight * tree.pixelRatio;
+  staticCtx.setTransform(tree.pixelRatio, 0, 0, tree.pixelRatio, 0, 0);
+  staticDirty = true;
+}
+resizeStatic();
+
+function repaintStaticLayer() {
+  if (!staticDirty) return;
+
+  // Background (moved off the animated canvas)
+  staticCtx.fillStyle = '#0e0f10';
+  staticCtx.fillRect(0, 0, tree.stageWidth, tree.stageHeight);
+  if (settings.backgroundMode === 'cave' && bgReady) {
+    updateCoverTransform();
+    const w = bgImg.naturalWidth  * cover.scale;
+    const h = bgImg.naturalHeight * cover.scale;
+    staticCtx.drawImage(bgImg, cover.offsetX, cover.offsetY, w, h);
+    staticCtx.fillStyle = 'rgba(0,0,0,0.35)';
+    staticCtx.fillRect(0, 0, tree.stageWidth, tree.stageHeight);
+  }
+
+  // Finished forest (draw once)
+  if (forestMode && forestTrees.length) {
+    forestTrees.forEach(t => {
+      if (t.uv) {
+        const p = uvToCanvasXY(t.uv);
+        t.treeX = p.x; t.treeY = p.y;
+      }
+      const s = scaledTreeRenderScale(t);
+      staticCtx.save();
+      staticCtx.translate(t.treeX, t.treeY);
+      staticCtx.scale(s, s);
+      staticCtx.translate(-t.treeX, -t.treeY);
+      const dx = t.treeX - (t.originX ?? t.treeX);
+      const dy = t.treeY - (t.originY ?? t.treeY);
+      staticCtx.translate(dx, dy);
+      for (let d = 0; d < t.depth && d < t.branches.length; d++) {
+        for (let k = 0; k < t.branches[d].length; k++) {
+          const b = t.branches[d][k];
+          staticCtx.beginPath();
+          staticCtx.moveTo(b.startX, b.startY);
+          staticCtx.lineTo(b.endX, b.endY);
+          staticCtx.lineWidth = b.lineWidth;
+          staticCtx.strokeStyle = getBranchStrokeStyleForTreeData(staticCtx, b, t);
+          staticCtx.stroke();
+        }
+      }
+      staticCtx.restore();
+    });
+  }
+
+  staticDirty = false;
+}
+
+
 function applySettingsToTree() {
   tree.depth = settings.depth;
   tree.growthSpeed = settings.growthSpeed;
@@ -344,6 +438,7 @@ function applySettingsToTree() {
 function createNewTreeData(x, y, uvFromCaller) {
   const uv = uvFromCaller || canvasToImageUV({ x, y });
   const spawn = uvToCanvasXY(uv);
+  const baseColorHex = sampleBaseColorHexAtUV(uv);
 
   const treeData = {
     id: Date.now() + Math.random(),
@@ -353,6 +448,7 @@ function createNewTreeData(x, y, uvFromCaller) {
     treeY: spawn.y,
     originX: spawn.x,   // <-- store planting origin
     originY: spawn.y,
+    baseColorHex,
 
     // per-tree settings
     treeTop: Infinity,
@@ -527,7 +623,8 @@ function degToRad(degree) {
 function getBranchStrokeStyleForTreeData(ctx, branch, treeData, renderScale = 1) {
 
   var shade = getShadeFactorForTreeData(branch, treeData);
-  if (treeData.colorMode === "gradient") {
+  if (treeData.colorMode === "gradient" || treeData.colorMode === "baseGradient") {
+
     // Colors (unchanged)
     var startColor = applyShadingForTreeData(getColorAtYForTreeData(branch.startY, treeData), shade, treeData);
     var endColor   = applyShadingForTreeData(getColorAtYForTreeData(branch.endY,   treeData), shade, treeData);
@@ -569,13 +666,20 @@ function getShadeFactorForTreeData(branch, treeData) {
 }
 
 function getColorAtYForTreeData(y, treeData) {
-  const start = hexToRgb(treeData.gradientStart);
-  const end   = hexToRgb(treeData.gradientEnd);
+  let start, end;
+
+  if (treeData.colorMode === 'baseGradient') {
+    start = hexToRgb(treeData.baseColorHex || treeData.gradientStart);
+    end   = hexToRgb(treeData.gradientEnd);
+  } else {
+    start = hexToRgb(treeData.gradientStart);
+    end   = hexToRgb(treeData.gradientEnd);
+  }
+
   if (!start || !end) return start || end || [0, 0, 0];
 
   // Use planting origin as the fixed reference so resizes don’t change the mix
   const baseY = (treeData.originY ?? treeData.treeY);
-
   if (!Number.isFinite(baseY) || !Number.isFinite(treeData.treeTop) || baseY === treeData.treeTop) {
     return start.slice();
   }
@@ -583,6 +687,7 @@ function getColorAtYForTreeData(y, treeData) {
   ratio = clamp01(ratio);
   return mixRgb(start, end, ratio);
 }
+
 
 
 function applyShadingForTreeData(rgb, shade, treeData) {
@@ -644,17 +749,20 @@ function startMasterAnimation() {
   function masterAnimate() {
     const startTime = performance.now();
     
-    // Clear and paint background every frame
-    tree.clearCanvas();
-    paintBackground();
+    // Draw static layer once when needed
+    repaintStaticLayer();
 
-    // Keep content visible after the clear:
-    if (forestMode) {
-      drawForestTrees();         // draw forest EVERY frame so it never vanishes
-      forestDirty = false;
-    } else if (completedSingleTree && !growingTrees.length) {
-      drawCompletedSingleTree(); // keep last tree visible in single-tree mode
+    // Clear only the animated (top) canvas this frame
+    tree.clearCanvas();
+
+    // When idle in single-tree mode, keep the last tree visible.
+    // (In forest mode, do nothing here — the static layer shows the forest.)
+    if (!growingTrees.length && !forestMode && completedSingleTree) {
+      drawCompletedSingleTree();
     }
+
+    // (no forest redraw here)
+
 
     
     // Animate all growing trees
@@ -796,9 +904,19 @@ function animateTreeData(treeData) {
 function drawTreeAt(x, y, opts) {
   applySettingsToTree();
   const treeData = createNewTreeData(x, y, opts?.uv);
+
+  // Show the sampled color in the disabled picker so it matches the result
+  if (settings.colorMode === 'baseGradient') {
+    // purely UI — keeps controls in sync; rendering uses treeData.baseColorHex
+    if (controls.gradientStart) controls.gradientStart.value = treeData.baseColorHex;
+    // if you also want settings to mirror it:
+    // settings.gradientStart = treeData.baseColorHex;
+  }
+
   growingTrees.push(treeData);
   startMasterAnimation();
 }
+
 
 function snapshotFromTreeData(treeData) {
   return {
@@ -820,7 +938,8 @@ function snapshotFromTreeData(treeData) {
     seed: treeData.seed,
     renderScale: treeData.renderScale,
     renderScaleBase: treeData.renderScaleBase,
-    uv: treeData.uv
+    uv: treeData.uv,
+    baseColorHex: treeData.baseColorHex,
   };
 }
 
@@ -848,11 +967,13 @@ function storeCompletedTreeFromData(treeData) {
     seed: treeData.seed,
     renderScale: treeData.renderScale,
     renderScaleBase: treeData.renderScaleBase,
-    uv: treeData.uv
+    uv: treeData.uv,
+    baseColorHex: treeData.baseColorHex,
   };
   
   forestTrees.push(completedTree);
-  forestDirty = true; // flag forest as dirty
+  forestDirty = true;
+  staticDirty = true;
 }
 
 function storeCompletedTreeFromInstance(treeInstance) {
@@ -1022,12 +1143,28 @@ function withCanvasPosition(evt) {
 }
 
 function updateColorInputsVisibility() {
-  const useGradient = settings.colorMode === 'gradient';
-  controls.solidGroup.style.display = useGradient ? 'none' : 'flex';
+  const mode = settings.colorMode;
+  const useGradient = (mode === 'gradient' || mode === 'baseGradient');
+
+  // Solid vs gradient visibility
+  controls.solidGroup.style.display = mode === 'solid' ? 'flex' : 'none';
   controls.gradientGroups.forEach((group) => {
     group.style.display = useGradient ? 'flex' : 'none';
   });
+
+  // In baseGradient, start color is sampled; disable that input
+  const startGroup = controls.gradientStart.closest('.control-group');
+  if (mode === 'baseGradient') {
+    controls.gradientStart.disabled = true;
+    if (startGroup) startGroup.style.opacity = 0.6;
+    controls.gradientStart.title = 'Start color comes from the background at the base';
+  } else {
+    controls.gradientStart.disabled = false;
+    if (startGroup) startGroup.style.opacity = 1;
+    controls.gradientStart.title = '';
+  }
 }
+
 
 function refreshControls() {
   controls.depth.value = settings.depth;
@@ -1120,7 +1257,8 @@ function syncSettingsFromInputs() {
   if (Number.isFinite(rawIntensity)) {
     settings.lightIntensity = clamp(rawIntensity, 0, 1);
   }
-  settings.colorMode = controls.colorMode.value === 'solid' ? 'solid' : 'gradient';
+  const cm = controls.colorMode.value;
+  settings.colorMode = (cm === 'solid' || cm === 'baseGradient') ? cm : 'gradient';  
   settings.color = sanitizeColor(controls.color.value, settings.color);
   settings.gradientStart = sanitizeColor(controls.gradientStart.value, settings.gradientStart);
   settings.gradientEnd = sanitizeColor(controls.gradientEnd.value, settings.gradientEnd);
@@ -1214,9 +1352,11 @@ controls.forestMode.addEventListener('change', () => {
     forestTrees = [];
     tree.clearCanvas();
     forestDirty = false;
-  }else{
-    forestDirty = true;
-  }
+    } else {
+        forestDirty = true;
+        staticDirty = true;
+        repaintStaticLayer();
+      }
 });
 
 controls.redrawBtn.addEventListener('click', () => redrawFromLastPoint());
@@ -1233,9 +1373,14 @@ function clearCanvas() {
   // Clear growing trees
   growingTrees = [];
   
-  tree.clearCanvas();
+  forestTrees = [];           // clear finished trees
+  tree.clearCanvas();         // clear live/top canvas
   lastClick = null;
-  forestTrees = []; // Clear forest trees when clearing canvas
+  lastAnchorUV = null;        // (optional) forget last anchor
+  // ✅ also clear the static layer (where finished trees are drawn)
+  forestDirty = false;
+  staticDirty = true;
+  repaintStaticLayer();
 }
 
 controls.clearBtn.addEventListener('click', () => {
@@ -1269,6 +1414,9 @@ canvas.addEventListener('mousedown', (evt) => {
 
 
 window.addEventListener('resize', () => {
+  resizeStatic();
+  staticDirty = true;
+  repaintStaticLayer();
   // 1) Resize the canvas FIRST so stageWidth/Height are fresh
   if (typeof tree.resize === 'function') tree.resize();
 
@@ -1380,8 +1528,9 @@ function applyPreset(preset) {
     }
   }
   if (preset.colorMode !== undefined) {
-    settings.colorMode = preset.colorMode === 'solid' ? 'solid' : 'gradient';
-  }
+    const cm = String(preset.colorMode);
+    settings.colorMode = (cm === 'solid' || cm === 'baseGradient') ? cm : 'gradient';
+  }  
   if (preset.color !== undefined) {
     settings.color = sanitizeColor(preset.color, settings.color);
   }
