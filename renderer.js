@@ -373,6 +373,10 @@ canvas.style.inset = '0';
 canvas.style.zIndex = '1';
 
 let staticDirty = true;
+// When false, repaintStaticLayer() will draw only the background (no forest)
+let showForestOnStatic = true;
+
+
 function resizeStatic() {
   staticCanvas.width  = tree.stageWidth * tree.pixelRatio;
   staticCanvas.height = tree.stageHeight * tree.pixelRatio;
@@ -397,7 +401,7 @@ function repaintStaticLayer() {
   }
 
   // Finished forest (draw once)
-  if (forestMode && forestTrees.length) {
+  if (showForestOnStatic && forestMode && forestTrees.length) {
     // Build draw list with current (x,y) and sort by depth if Depth Mode is ON
     const drawList = forestTrees.map(t => {
       // Recompute canvas-space position from UV for this frame
@@ -790,11 +794,73 @@ function startMasterAnimation() {
   function masterAnimate() {
     const startTime = performance.now();
     
-    // Draw static layer once when needed
-    repaintStaticLayer();
+
 
     // Clear only the animated (top) canvas this frame
+    // Clear only the animated (top) canvas this frame
     tree.clearCanvas();
+
+    // ---- Depth-correct composite when growing ----
+    const finishedList = forestMode
+      ? forestTrees
+      : (completedSingleTree ? [completedSingleTree] : []);
+
+    const compositeNow =
+      settings.depthMode && growingTrees.length > 0 && finishedList.length > 0;
+
+    // Toggle forest visibility on the static layer
+    const desiredShowForest = !compositeNow;
+    if (showForestOnStatic !== desiredShowForest) {
+      showForestOnStatic = desiredShowForest;
+      staticDirty = true;
+    }
+    repaintStaticLayer();          // static = background only when compositing
+
+    if (compositeNow) {
+      // Paint background on the live canvas for this frame
+      paintBackground();
+
+      // One mixed, depth-sorted draw list: far (small v) -> near (big v)
+      const items = [
+        ...finishedList.map(t => ({ kind: 'finished', t })),
+        ...growingTrees.map((t, idx) => ({ kind: 'growing', t, idx }))
+      ].sort((a, b) => depthSortKey(a.t) - depthSortKey(b.t));
+
+      const doneIdx = [];
+      let hasGrowingTrees = false;
+
+      for (const it of items) {
+        if (it.kind === 'finished') {
+          drawFinishedTree(it.t);
+        } else {
+          const still = animateTreeData(it.t);  // draws progressive frame
+          if (still) hasGrowingTrees = true;
+          else doneIdx.push(it.idx);
+        }
+      }
+
+      // Remove newly finished from the growing list and persist them
+      if (doneIdx.length) {
+        doneIdx.sort((a, b) => b - a).forEach(i => {
+          const t = growingTrees[i];
+          if (!t) return;
+          growingTrees.splice(i, 1);
+          if (forestMode) {
+            storeCompletedTreeFromData(t);
+            forestDirty = true;
+          } else {
+            completedSingleTree = snapshotFromTreeData(t);
+          }
+        });
+      }
+
+      // Schedule next frame
+      masterAnimationId = requestAnimationFrame(masterAnimate);
+      return;  // IMPORTANT: skip the old non-composite path this frame
+    }
+
+
+    
 
     // When idle in single-tree mode, keep the last tree visible.
     // (In forest mode, do nothing here — the static layer shows the forest.)
@@ -994,6 +1060,8 @@ function drawTreeAt(x, y, opts) {
   growingTrees.push(treeData);
   startMasterAnimation();
 }
+
+
 
 
 function snapshotFromTreeData(treeData) {
@@ -1379,6 +1447,40 @@ if (controls.depthStrength) {
     // Strength affects new trees; existing ones keep their planted scale.
   });
 }
+
+function drawFinishedTree(t, ctx = tree.ctx) {
+  // Keep tree glued to background
+  if (t.uv) {
+    const p = uvToCanvasXY(t.uv);
+    t.treeX = p.x; t.treeY = p.y;
+  }
+  const s = scaledTreeRenderScale(t);
+
+  ctx.save();
+  ctx.translate(t.treeX, t.treeY);
+  ctx.scale(s, s);
+  ctx.translate(-t.treeX, -t.treeY);
+
+  // anchor delta so gradients/shading stay stable
+  const dx = t.treeX - (t.originX ?? t.treeX);
+  const dy = t.treeY - (t.originY ?? t.treeY);
+  ctx.translate(dx, dy);
+
+  for (let d = 0; d < t.depth && d < t.branches.length; d++) {
+    for (let k = 0; k < t.branches[d].length; k++) {
+      const b = t.branches[d][k];
+      ctx.beginPath();
+      ctx.moveTo(b.startX, b.startY);
+      ctx.lineTo(b.endX, b.endY);
+      ctx.lineWidth = b.lineWidth;
+      ctx.strokeStyle = getBranchStrokeStyleForTreeData(ctx, b, t);
+      ctx.stroke();
+      ctx.closePath();
+    }
+  }
+  ctx.restore();
+}
+
 
 
 function updateDepthControlsVisibility() {
