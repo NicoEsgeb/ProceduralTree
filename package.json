@@ -18,9 +18,13 @@
       "preload.js",
       "index.html",
       "renderer.js",
-      "styles.css",
+    "panel-registry.js",
+    "yt-panel.js",
+    "yt-panel.css",
+    "timer-panel.js",
+    "styles.css",
       "vendor/**/*",
-      "assets/**/*"    
+      "assets/**/*"
     ],
     "directories": {
       "buildResources": "assets"
@@ -29,16 +33,22 @@
       "category": "public.app-category.graphics-design"
     },
     "linux": {
-      "target": ["AppImage", "deb"]
+      "target": [
+        "AppImage",
+        "deb"
+      ]
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     }
   },
-  "dependencies": {},
+  "dependencies": {
+    "yt-search": "^2.13.1"
+  },
   "devDependencies": {
     "electron": "^29.4.0",
     "electron-builder": "^24.6.4"
   }
-  
 }

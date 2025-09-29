@@ -160,3 +160,26 @@ body {
 .gradient-group {
   display: none;
 }
+
+/* Spotify Overlay */
+#spotifyOverlay {
+  position: absolute;
+  z-index: 500;
+  pointer-events: auto;
+  display: none; /* toggled by JS */
+  border-radius: 12px;
+  overflow: hidden; /* ensure rounded corners clip */
+}
+#spotifyOverlay.show { display: block; }
+/* corner helpers */
+.pos-br { right: 12px; bottom: 12px; }
+.pos-bl { left: 12px; bottom: 12px; }
+.pos-tr { right: 12px; top: 12px; }
+.pos-tl { left: 12px; top: 12px; }
+#spotifyIframe { 
+  border-radius: 12px; 
+  display: block;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+}
+/* tiny validation note */
+.spotify-hint { font-size: 12px; opacity: 0.8; margin-top: 4px; }

@@ -13,7 +13,14 @@ const defaultSettings = {
   renderScale: 1,
   backgroundMode: 'dark',
   depthMode: false,          
-  depthStrength: 0.6         // NEW (0..~1.2 feels good)
+  depthStrength: 0.6,        // NEW (0..~1.2 feels good)
+  // Spotify embed defaults
+  spotify: {
+    enabled: false,
+    link: 'https://open.spotify.com/playlist/37i9dQZF1DXc8kgYqQLMfH', // default Lo-Fi Beats playlist
+    size: 'mini',     // mini | compact | card
+    position: 'br'    // br | bl | tr | tl
+  }
 };
 
 let forestDirty = false;                // draw forest layer only when it changes
@@ -62,8 +69,228 @@ const controls = {
   backgroundMode: document.querySelector('#background-mode-input'),
   depthMode: document.querySelector('#depth-mode-input'),              
   depthStrength: document.querySelector('#depth-strength-input'),      
-  depthStrengthGroup: document.querySelector('#depth-strength-group')
+  depthStrengthGroup: document.querySelector('#depth-strength-group'),
+  // Spotify controls
+  spotifyEnable: document.querySelector('#spotifyEnable'),
+  // spotifyLink control removed from UI; still supported if later added
+  spotifySize: document.querySelector('#spotifySize'),
+  spotifyPosition: document.querySelector('#spotifyPosition'),
+  spotifyLinkHint: document.querySelector('#spotifyLinkHint'),
+  spotifyLoginBtn: document.querySelector('#spotifyLoginBtn'),
+  spotifyOpenBtn: document.querySelector('#spotifyOpenBtn')
 };
+
+// ---- Spotify helpers ----
+const SPOTIFY_ALLOWED_TYPES = new Set(['track','album','playlist','artist','episode','show']);
+const SPOTIFY_LOCAL_KEY = 'clicktree.settings'; // store under .spotify in this JSON blob
+
+function debounce(fn, wait) {
+  let t = null;
+  return function(...args) {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), wait);
+  };
+}
+
+function toSpotifyEmbedUrl(input) {
+  if (!input || typeof input !== 'string') return null;
+  const raw = input.trim();
+  if (!raw) return null;
+
+  // Allow spotify:{type}:{id}
+  if (raw.startsWith('spotify:')) {
+    const parts = raw.split(':');
+    if (parts.length >= 3) {
+      const type = parts[1];
+      const id = parts[2].split('?')[0];
+      if (SPOTIFY_ALLOWED_TYPES.has(type) && id) {
+        return `https://open.spotify.com/embed/${type}/${encodeURIComponent(id)}`;
+      }
+    }
+    return null;
+  }
+
+  // Allow https://open.spotify.com/... (remove possible locale prefix like /intl-en)
+  try {
+    const url = new URL(raw);
+    if (url.hostname !== 'open.spotify.com') return null;
+    const segments = url.pathname.split('/').filter(Boolean);
+    let idx = 0;
+    if (segments[0] && segments[0].startsWith('intl-')) idx = 1;
+    const type = segments[idx];
+    const id = segments[idx + 1];
+    if (!type || !id || !SPOTIFY_ALLOWED_TYPES.has(type)) return null;
+
+    // Allowlist a few harmless params
+    const allowed = new URLSearchParams();
+    const keep = ['utm_source','si','theme'];
+    for (const [k, v] of url.searchParams.entries()) {
+      if (keep.includes(k)) allowed.set(k, v);
+    }
+    // Default to dark theme if none provided
+    if (!allowed.has('theme')) allowed.set('theme', '0');
+    const qs = allowed.toString();
+    const base = `https://open.spotify.com/embed/${type}/${encodeURIComponent(id)}`;
+    return qs ? `${base}?${qs}` : base;
+  } catch (_e) {
+    return null;
+  }
+}
+
+function loadLocalSpotifySettings() {
+  try {
+    const raw = localStorage.getItem(SPOTIFY_LOCAL_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && parsed.spotify && typeof parsed.spotify === 'object') {
+      const s = parsed.spotify;
+      settings.spotify = {
+        enabled: !!s.enabled,
+        link: typeof s.link === 'string' && s.link.trim() ? s.link : DEFAULT_SPOTIFY_LINK,
+        size: (s.size === 'mini' || s.size === 'compact' || s.size === 'card') ? s.size : 'mini',
+        position: (s.position === 'br' || s.position === 'bl' || s.position === 'tr' || s.position === 'tl') ? s.position : 'br'
+      };
+    }
+  } catch (_e) {
+    // ignore
+  }
+}
+
+function saveLocalSpotifySettings() {
+  try {
+    const raw = localStorage.getItem(SPOTIFY_LOCAL_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    parsed.spotify = {
+      enabled: !!settings.spotify.enabled,
+      link: settings.spotify.link || '',
+      size: settings.spotify.size || 'mini',
+      position: settings.spotify.position || 'br'
+    };
+    localStorage.setItem(SPOTIFY_LOCAL_KEY, JSON.stringify(parsed));
+  } catch (_e) {
+    // ignore
+  }
+}
+
+function applySpotifySettings(force = false) {
+  const overlay = document.getElementById('spotifyOverlay');
+  const iframe = document.getElementById('spotifyIframe');
+  const hint = controls.spotifyLinkHint;
+  if (!overlay || !iframe) return;
+
+  // Reset position classes
+  overlay.classList.remove('pos-br','pos-bl','pos-tr','pos-tl');
+  const posClass = `pos-${settings.spotify.position || 'br'}`;
+  overlay.classList.add(posClass);
+
+  // Size mapping
+  let width = 250, height = 80, maxW = '';
+  if (settings.spotify.size === 'compact') { width = 352; height = 152; }
+  else if (settings.spotify.size === 'card') { width = '100%'; height = 352; maxW = '420px'; }
+  overlay.style.maxWidth = maxW;
+  iframe.setAttribute('width', String(width));
+  iframe.setAttribute('height', String(height));
+  iframe.setAttribute('frameborder', '0');
+  iframe.setAttribute('loading', 'lazy');
+  iframe.setAttribute('allow', 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture');
+
+  const enabled = !!settings.spotify.enabled;
+  let embedUrl = toSpotifyEmbedUrl(settings.spotify.link);
+  if (!embedUrl) embedUrl = toSpotifyEmbedUrl(DEFAULT_SPOTIFY_LINK);
+
+  // Validation hint
+  if (hint) { hint.textContent = ''; }
+
+  if (enabled && embedUrl) {
+    if (force || iframe.src !== embedUrl) iframe.src = embedUrl;
+    overlay.classList.add('show');
+  } else {
+    overlay.classList.remove('show');
+    // Clear src to avoid background activity when hidden
+    if (!enabled) iframe.removeAttribute('src');
+  }
+}
+
+function initSpotifyUI() {
+  // Initialize control values
+  if (controls.spotifyEnable) controls.spotifyEnable.checked = !!settings.spotify.enabled;
+  if (controls.spotifySize) controls.spotifySize.value = settings.spotify.size || 'mini';
+  if (controls.spotifyPosition) controls.spotifyPosition.value = settings.spotify.position || 'br';
+
+  const applyAndSave = () => { applySpotifySettings(); saveLocalSpotifySettings(); };
+
+  if (controls.spotifyEnable) {
+    controls.spotifyEnable.addEventListener('change', () => {
+      settings.spotify.enabled = !!controls.spotifyEnable.checked;
+      applyAndSave();
+    });
+  }
+  if (controls.spotifySize) {
+    controls.spotifySize.addEventListener('change', () => {
+      settings.spotify.size = controls.spotifySize.value;
+      applyAndSave();
+    });
+  }
+  if (controls.spotifyPosition) {
+    controls.spotifyPosition.addEventListener('change', () => {
+      settings.spotify.position = controls.spotifyPosition.value;
+      applyAndSave();
+    });
+  }
+  // No link field: always use saved/default link
+
+  if (controls.spotifyLoginBtn) {
+    controls.spotifyLoginBtn.addEventListener('click', async () => {
+      try {
+        await window.clickTreeAPI?.openSpotifyLogin();
+        // Reload the iframe to reflect login state
+        applySpotifySettings(true);
+      } catch (_e) {}
+    });
+  }
+
+  if (controls.spotifyOpenBtn) {
+    controls.spotifyOpenBtn.addEventListener('click', async () => {
+      const openUrl = toSpotifyOpenUrl(settings.spotify.link) || toSpotifyOpenUrl(DEFAULT_SPOTIFY_LINK);
+      if (openUrl) {
+        await window.clickTreeAPI?.openExternal(openUrl);
+      }
+    });
+  }
+
+  // Initial paint
+  applySpotifySettings();
+}
+
+function toSpotifyOpenUrl(input) {
+  if (!input || typeof input !== 'string') return null;
+  const raw = input.trim();
+  if (!raw) return null;
+  if (raw.startsWith('spotify:')) {
+    const parts = raw.split(':');
+    if (parts.length >= 3) {
+      const type = parts[1];
+      const id = parts[2].split('?')[0];
+      if (SPOTIFY_ALLOWED_TYPES.has(type) && id) {
+        return `https://open.spotify.com/${type}/${encodeURIComponent(id)}`;
+      }
+    }
+    return null;
+  }
+  try {
+    const url = new URL(raw);
+    if (url.hostname !== 'open.spotify.com') return null;
+    const segments = url.pathname.split('/').filter(Boolean);
+    let idx = 0;
+    if (segments[0] && segments[0].startsWith('intl-')) idx = 1;
+    const type = segments[idx];
+    const id = segments[idx + 1];
+    if (!type || !id || !SPOTIFY_ALLOWED_TYPES.has(type)) return null;
+    return `https://open.spotify.com/${type}/${encodeURIComponent(id)}`;
+  } catch (_e) {
+    return null;
+  }
+}
 
 // === Background image meta & "cover" transform ===
 const BG_URL = 'assets/CaveImages/cave1.png'; // same path used by CSS
@@ -299,6 +526,9 @@ function cloneSettings(src) {
 const settings = {
   ...defaultSettings
 };
+
+// Load persisted Spotify settings from localStorage
+loadLocalSpotifySettings();
 
 // after: const settings = { ...defaultSettings };
 
@@ -1790,9 +2020,82 @@ if (window.clickTreeAPI?.onPresetLoaded) {
 
 refreshControls();
 
+// Initialize Spotify controls and overlay after controls are ready
+initSpotifyUI();
+
 window.clickTree = {
   draw: drawTreeAt,
   clear: clearCanvas,
   randomize: randomizeTreeSettings,
   settings
 };
+const DEFAULT_SPOTIFY_LINK = 'https://open.spotify.com/playlist/37i9dQZF1DXc8kgYqQLMfH';
+
+// --- YouTube Panel integration (minimal hooks) ---
+// Optional: expose API key from env if available (harmless when undefined)
+try {
+  if (typeof window !== 'undefined' && typeof process !== 'undefined' && process.env && process.env.YOUTUBE_API_KEY) {
+    window.YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+  }
+} catch (_e) {}
+
+function ensureFabCluster() {
+  let cluster = document.getElementById('fab-cluster');
+  if (!cluster) {
+    cluster = document.createElement('div');
+    cluster.id = 'fab-cluster';
+    document.body.appendChild(cluster);
+  }
+  return cluster;
+}
+
+function ensureYTFab() {
+  const cluster = ensureFabCluster();
+  let btn = cluster.querySelector('#yt-fab');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'yt-fab';
+    btn.type = 'button';
+    btn.classList.add('fab');
+    btn.title = 'YouTube (Cmd/Ctrl+Shift+Y)';
+    btn.setAttribute('aria-label', 'Open YouTube panel');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 15l5.19-3L10 9v6zm11-3c0 2.12-.17 3.5-.5 4.38-.33.9-1.05 1.62-1.95 1.95C17.67 18.67 12 18.67 12 18.67s-5.67 0-6.55-.34c-.9-.33-1.62-1.05-1.95-1.95C3.17 15.5 3 14.12 3 12c0-2.12.17-3.5.5-4.38.33-.9 1.05-1.62 1.95-1.95C6.33 5.33 12 5.33 12 5.33s5.67 0 6.55.34c.9.33 1.62 1.05 1.95 1.95.33.88.5 2.26.5 4.38z"/></svg>';
+    cluster.appendChild(btn);
+  } else {
+    btn.title = btn.title || 'YouTube (Cmd/Ctrl+Shift+Y)';
+    btn.setAttribute('aria-label', btn.getAttribute('aria-label') || 'Open YouTube panel');
+  }
+  if (!btn.dataset.wired) {
+    btn.dataset.wired = 'true';
+    btn.addEventListener('click', () => {
+      try { window.YtPanel?.toggle(); } catch (_e) {}
+    });
+  }
+}
+
+function ensureTimerFab() {
+  const cluster = ensureFabCluster();
+  let btn = cluster.querySelector('#timer-fab');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'timer-fab';
+    btn.type = 'button';
+    btn.classList.add('fab');
+    btn.title = 'Study Timer';
+    btn.setAttribute('aria-label', 'Open Study Timer panel');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 1h-6v2h6V1zm-2 15h-2V9h2v7zm7-5c0 4.97-4.03 9-9 9s-9-4.03-9-9c0-4.62 3.5-8.44 8-8.94V4h2V2.06c4.5.5 8 4.32 8 8.94zm-2 0c0-3.86-3.14-7-7-7s-7 3.14-7 7 3.14 7 7 7 7-3.14 7-7z"/></svg>';
+    cluster.appendChild(btn);
+  } else {
+    btn.title = btn.title || 'Study Timer';
+    btn.setAttribute('aria-label', btn.getAttribute('aria-label') || 'Open Study Timer panel');
+  }
+  if (!btn.dataset.wired) {
+    btn.dataset.wired = 'true';
+    btn.addEventListener('click', () => {
+      try { window.TimerPanel?.toggle(); } catch (_e) {}
+    });
+  }
+}
+
+ensureYTFab();
+ensureTimerFab();

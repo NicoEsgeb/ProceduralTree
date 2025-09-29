@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ClickTree</title>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="yt-panel.css" />
 </head>
 <body>
   <div id="app">
@@ -105,6 +106,36 @@
           <button id="redraw-btn">Redraw</button>
           <button id="randomize-btn">Randomize Tree</button>
         </div>
+        <!-- Spotify Controls -->
+        <h2>Spotify</h2>
+        <div class="control-group checkbox">
+          <label>
+            <input type="checkbox" id="spotifyEnable" />
+            Show Spotify
+          </label>
+        </div>
+        <!-- Link input removed: player uses a default playlist automatically -->
+        <div class="control-group">
+          <label for="spotifySize">Size</label>
+          <select id="spotifySize">
+            <option value="mini">Mini (250×80)</option>
+            <option value="compact">Compact (352×152)</option>
+            <option value="card">Card (100%×352)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label for="spotifyPosition">Position</label>
+          <select id="spotifyPosition">
+            <option value="br">Bottom-right</option>
+            <option value="bl">Bottom-left</option>
+            <option value="tr">Top-right</option>
+            <option value="tl">Top-left</option>
+          </select>
+        </div>
+        <div class="button-row">
+          <button id="spotifyLoginBtn" title="Sign in to Spotify">Sign in</button>
+          <button id="spotifyOpenBtn" title="Open in Spotify">Open</button>
+        </div>
         <div class="button-row">
           <button id="randomize-seed-btn">Randomize Seed</button>
           <button id="clear-btn">Clear</button>
@@ -116,7 +147,23 @@
       </div>
     </div>
   </div>
+  <!-- Spotify overlay (above canvases, inside app container) -->
+  <div id="spotifyOverlay" class="pos-br">
+    <iframe id="spotifyIframe"></iframe>
+  </div>
+  <div id="fab-cluster">
+    <button id="yt-fab" class="fab" title="YouTube" aria-label="Open YouTube panel">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 15l5.19-3L10 9v6zm11-3c0 2.12-.17 3.5-.5 4.38-.33.9-1.05 1.62-1.95 1.95C17.67 18.67 12 18.67 12 18.67s-5.67 0-6.55-.34c-.9-.33-1.62-1.05-1.95-1.95C3.17 15.5 3 14.12 3 12c0-2.12.17-3.5.5-4.38.33-.9 1.05-1.62 1.95-1.95C6.33 5.33 12 5.33 12 5.33s5.67 0 6.55.34c.9.33 1.62 1.05 1.95 1.95.33.88.5 2.26.5 4.38z"/></svg>
+    </button>
+    <button id="timer-fab" class="fab" title="Study Timer" aria-label="Open Study Timer panel">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 1h-6v2h6V1zm-2 15h-2V9h2v7zm7-5c0 4.97-4.03 9-9 9s-9-4.03-9-9c0-4.62 3.5-8.44 8-8.94V4h2V2.06c4.5.5 8 4.32 8 8.94zm-2 0c0-3.86-3.14-7-7-7s-7 3.14-7 7 3.14 7 7 7 7-3.14 7-7z"/></svg>
+    </button>
+  </div>
+
   <script src="./vendor/tree.js"></script>
+  <script src="./panel-registry.js"></script>
+  <script src="./yt-panel.js"></script>
+  <script src="./timer-panel.js"></script>
   <script type="module" src="./renderer.js"></script>
 </body>
 </html>
