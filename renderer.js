@@ -38,6 +38,9 @@ const randomRanges = {
   lightIntensity: [0.1, 1]
 };
 
+const THEME_STORAGE_KEY = 'ui.theme';
+let activeTheme = 'classic';
+
 const canvasContainer = document.querySelector('#canvas-container');
 const paneContainer = document.querySelector('#pane-container');
 let canvas = null;
@@ -77,8 +80,51 @@ const controls = {
   spotifyPosition: document.querySelector('#spotifyPosition'),
   spotifyLinkHint: document.querySelector('#spotifyLinkHint'),
   spotifyLoginBtn: document.querySelector('#spotifyLoginBtn'),
-  spotifyOpenBtn: document.querySelector('#spotifyOpenBtn')
+  spotifyOpenBtn: document.querySelector('#spotifyOpenBtn'),
+  themeSelect: document.querySelector('#theme-select')
 };
+
+function readStoredTheme() {
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    return stored === 'cozy' ? 'cozy' : 'classic';
+  } catch (_e) {
+    return 'classic';
+  }
+}
+
+function applyThemeClass(theme) {
+  activeTheme = theme === 'cozy' ? 'cozy' : 'classic';
+  if (typeof document !== 'undefined' && document.body) {
+    document.body.classList.toggle('cozy-theme', activeTheme === 'cozy');
+  }
+  if (controls.themeSelect && controls.themeSelect.value !== activeTheme) {
+    controls.themeSelect.value = activeTheme;
+  }
+}
+
+function persistTheme(theme) {
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch (_e) {
+    // ignore storage failures
+  }
+}
+
+function initThemeSelector() {
+  const initialTheme = readStoredTheme();
+  applyThemeClass(initialTheme);
+  if (controls.themeSelect) {
+    controls.themeSelect.value = initialTheme;
+    controls.themeSelect.addEventListener('change', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLSelectElement)) return;
+      const selected = target.value === 'cozy' ? 'cozy' : 'classic';
+      applyThemeClass(selected);
+      persistTheme(selected);
+    });
+  }
+}
 
 // ---- Spotify helpers ----
 const SPOTIFY_ALLOWED_TYPES = new Set(['track','album','playlist','artist','episode','show']);
@@ -526,6 +572,8 @@ function cloneSettings(src) {
 const settings = {
   ...defaultSettings
 };
+
+initThemeSelector();
 
 // Load persisted Spotify settings from localStorage
 loadLocalSpotifySettings();
@@ -1579,6 +1627,7 @@ function refreshControls() {
   const s = String(settings.renderScale ?? 1);
   if (controls.renderScaleInput) controls.renderScaleInput.value = s;
   if (controls.renderScaleRange) controls.renderScaleRange.value = s;
+  if (controls.themeSelect) controls.themeSelect.value = activeTheme;
 }
 
 function setSeedValue(newSeed, { refresh = true, redraw = true } = {}) {
