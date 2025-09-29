@@ -1,8 +1,5 @@
 :root {
   color-scheme: dark light;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #111;
-  color: #f3f3f3;
 }
 
 * {
@@ -10,15 +7,77 @@
 }
 
 body {
+  --font-family-base: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --heading-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --heading-font-size: 18px;
+  --heading-font-weight: 600;
+  --heading-text-transform: uppercase;
+  --heading-letter-spacing: 0.08em;
+  --heading-color: #f5f5f5;
+  --label-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --label-font-size: 12px;
+  --label-text-transform: uppercase;
+  --label-letter-spacing: 0.06em;
+  --label-color: rgba(255, 255, 255, 0.75);
+  --checkbox-label-color: rgba(255, 255, 255, 0.75);
+  --body-bg: #111;
+  --text-color: #f3f3f3;
+  --app-background: none;
+  --canvas-background: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.9) 70%);
+  --canvas-image-background: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url('assets/CaveImages/cave1.png');
+  --panel-background: rgba(20, 20, 20, 0.9);
+  --panel-text-color: #f5f5f5;
+  --panel-border-color: rgba(255, 255, 255, 0.08);
+  --panel-radius: 12px;
+  --panel-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  --panel-backdrop-filter: blur(6px);
+  --input-background: rgba(255, 255, 255, 0.08);
+  --input-border-color: rgba(255, 255, 255, 0.15);
+  --input-text-color: #f5f5f5;
+  --input-radius: 6px;
+  --input-shadow: none;
+  --input-hover-shadow: none;
+  --range-accent-color: #facc15;
+  --focus-ring-shadow: 0 0 0 2px rgba(59, 130, 246, 0.45), 0 12px 28px rgba(59, 130, 246, 0.3);
+  --button-background: linear-gradient(135deg, #3b82f6, #9333ea);
+  --button-alt-background: linear-gradient(135deg, #ef4444, #f97316);
+  --button-text-color: #ffffff;
+  --button-border: none;
+  --button-radius: 6px;
+  --button-shadow: none;
+  --button-hover-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  --button-hover-translate: -1px;
+  --button-press-translate: 0;
+  --button-active-filter: brightness(0.95);
+  --button-alt-text-color: var(--button-text-color);
+  --fab-primary-bg: var(--ytp-accent);
+  --fab-secondary-bg: var(--ytp-accent-2);
+  --fab-button-color: #ffffff;
+  --fab-button-border: none;
+  --fab-button-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --fab-button-hover-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  --fab-button-hover-translate: -2px;
+  --fab-button-active-translate: 1px;
+  --fab-button-hover-filter: brightness(1.05);
+  --fab-button-active-filter: brightness(0.96);
+  --fab-button-focus-shadow: var(--ytp-focus);
   margin: 0;
   min-height: 100vh;
   overflow: hidden;
+  font-family: var(--font-family-base);
+  background-color: var(--body-bg);
+  color: var(--text-color);
+}
+
+body.theme-classic-dark {
+  color-scheme: dark;
 }
 
 #app {
   position: relative;
   width: 100vw;
   height: 100vh;
+  background: var(--app-background);
 }
 
 .canvas-container {
@@ -27,7 +86,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.9) 70%);
+  background: var(--canvas-background);
 }
 
 .canvas-container canvas {
@@ -38,14 +97,11 @@ body {
 }
 
 .canvas-container.bg-image {
-  background:
-    linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)),
-    url('assets/CaveImages/cave1.png');
+  background: var(--canvas-image-background);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
-
 
 .pane-container {
   position: absolute;
@@ -57,23 +113,25 @@ body {
 }
 
 .control-panel {
-  background: rgba(20, 20, 20, 0.9);
-  border-radius: 12px;
+  background: var(--panel-background);
+  border-radius: var(--panel-radius);
   padding: 16px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(6px);
-  color: #f5f5f5;
+  box-shadow: var(--panel-shadow);
+  border: 1px solid var(--panel-border-color);
+  backdrop-filter: var(--panel-backdrop-filter);
+  color: var(--panel-text-color);
   max-height: calc(100vh - 32px);
   overflow-y: auto;
 }
 
 .control-panel h2 {
   margin: 0 0 12px;
-  font-size: 18px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: var(--heading-font-size);
+  font-weight: var(--heading-font-weight);
+  text-transform: var(--heading-text-transform);
+  letter-spacing: var(--heading-letter-spacing);
+  font-family: var(--heading-font-family);
+  color: var(--heading-color);
 }
 
 .control-group {
@@ -84,20 +142,23 @@ body {
 }
 
 .control-group label {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.75);
+  font-size: var(--label-font-size);
+  text-transform: var(--label-text-transform);
+  letter-spacing: var(--label-letter-spacing);
+  color: var(--label-color);
+  font-family: var(--label-font-family);
 }
 
 .control-group input,
 .control-group select {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  color: #f5f5f5;
+  background: var(--input-background);
+  border: 1px solid var(--input-border-color);
+  border-radius: var(--input-radius);
+  color: var(--input-text-color);
   padding: 6px 8px;
   font-size: 14px;
+  box-shadow: var(--input-shadow);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
 .control-group input[type='color'] {
@@ -108,7 +169,7 @@ body {
 .control-group input[type='range'] {
   padding: 0;
   height: 6px;
-  accent-color: #facc15;
+  accent-color: var(--range-accent-color);
 }
 
 .control-group.checkbox {
@@ -123,6 +184,7 @@ body {
   gap: 8px;
   text-transform: none;
   letter-spacing: normal;
+  color: var(--checkbox-label-color);
 }
 
 .button-row {
@@ -131,34 +193,52 @@ body {
   margin-bottom: 10px;
 }
 
-.button-row button {
+.button-row button,
+.theme-mode-btn {
   flex: 1;
   padding: 8px 10px;
-  border: none;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #3b82f6, #9333ea);
-  color: white;
+  border: var(--button-border, none);
+  border-radius: var(--button-radius);
+  background: var(--button-background);
+  color: var(--button-text-color);
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  box-shadow: var(--button-shadow);
 }
 
 .button-row button:nth-child(2) {
-  background: linear-gradient(135deg, #ef4444, #f97316);
+  background: var(--button-alt-background);
+  color: var(--button-alt-text-color, var(--button-text-color));
 }
 
-.button-row button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+.button-row button:hover,
+.theme-mode-btn:hover {
+  transform: translateY(var(--button-hover-translate, -1px));
+  box-shadow: var(--button-hover-shadow);
 }
 
-.button-row button:active {
-  transform: translateY(0);
-  filter: brightness(0.95);
+.button-row button:active,
+.theme-mode-btn:active {
+  transform: translateY(var(--button-press-translate, 0));
+  filter: var(--button-active-filter, brightness(0.95));
+}
+
+.theme-mode-btn {
+  width: 100%;
+  display: block;
 }
 
 .gradient-group {
   display: none;
+}
+
+.control-group input:focus-visible,
+.control-group select:focus-visible,
+.button-row button:focus-visible,
+.theme-mode-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-shadow);
 }
 
 /* Spotify Overlay */
@@ -199,115 +279,162 @@ body.cozy-theme {
   --cozy-ink: #3b2e2a;
   --cozy-accent: #86b6b8;
   --cozy-accent-2: #9ad1d4;
-  font-family: 'DM Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: var(--cozy-ink);
-  background-color: var(--cozy-plum-900);
+  --font-family-base: 'DM Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --heading-font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
+  --heading-font-size: 20px;
+  --heading-font-weight: 400;
+  --heading-text-transform: none;
+  --heading-letter-spacing: 0.04em;
+  --label-font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  --label-font-size: 13px;
+  --label-text-transform: none;
+  --label-letter-spacing: 0.02em;
+  --panel-radius: 18px;
+  --input-radius: 14px;
+  --button-radius: 16px;
+  --button-hover-translate: -2px;
+  --button-press-translate: 0;
+  --focus-ring-shadow: 0 0 0 2px rgba(154, 209, 212, 0.55), 0 12px 28px rgba(134, 182, 184, 0.35);
 }
 
-body.cozy-theme #app {
-  background:
+body.theme-classic-light {
+  color-scheme: light;
+  --body-bg: #f3f6fb;
+  --text-color: #1f2937;
+  --app-background:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.14), rgba(243, 246, 251, 0) 55%),
+    radial-gradient(circle at bottom left, rgba(14, 165, 233, 0.12), rgba(243, 246, 251, 0) 60%),
+    #f3f6fb;
+  --canvas-background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.6) 0%, rgba(148, 163, 184, 0.12) 70%),
+    #f9fbff;
+  --canvas-image-background:
+    linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)),
+    url('assets/CaveImages/cave1.png');
+  --panel-background: rgba(255, 255, 255, 0.92);
+  --panel-text-color: #1f2937;
+  --panel-border-color: rgba(148, 163, 184, 0.35);
+  --panel-radius: 14px;
+  --panel-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  --panel-backdrop-filter: blur(12px);
+  --heading-color: #1e3a8a;
+  --label-color: rgba(30, 41, 59, 0.78);
+  --checkbox-label-color: rgba(15, 23, 42, 0.82);
+  --input-background: rgba(255, 255, 255, 0.95);
+  --input-border-color: rgba(148, 163, 184, 0.6);
+  --input-text-color: #1f2937;
+  --input-radius: 8px;
+  --input-shadow: 0 10px 24px rgba(148, 163, 184, 0.25);
+  --input-hover-shadow: 0 14px 28px rgba(148, 163, 184, 0.32);
+  --focus-ring-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35), 0 14px 30px rgba(59, 130, 246, 0.3);
+  --range-accent-color: #2563eb;
+  --button-background: linear-gradient(135deg, #2563eb, #7c3aed);
+  --button-alt-background: linear-gradient(135deg, #fb7185, #f97316);
+  --button-border: none;
+  --button-shadow: 0 12px 28px rgba(59, 130, 246, 0.22);
+  --button-hover-shadow: 0 18px 34px rgba(59, 130, 246, 0.24);
+  --button-active-filter: brightness(0.97);
+  --fab-primary-bg: linear-gradient(135deg, rgba(37, 99, 235, 0.9), rgba(124, 58, 237, 0.92));
+  --fab-secondary-bg: linear-gradient(135deg, rgba(124, 58, 237, 0.92), rgba(37, 99, 235, 0.9));
+  --fab-button-color: #ffffff;
+  --fab-button-border: 1px solid rgba(37, 99, 235, 0.35);
+  --fab-button-shadow: 0 20px 36px rgba(37, 99, 235, 0.22);
+  --fab-button-hover-shadow: 0 24px 42px rgba(37, 99, 235, 0.28);
+  --fab-button-hover-translate: -4px;
+  --fab-button-active-translate: -1px;
+  --fab-button-hover-filter: brightness(1.06);
+  --fab-button-active-filter: brightness(0.96);
+  --fab-button-focus-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35), 0 24px 42px rgba(37, 99, 235, 0.32);
+}
+
+body.theme-cozy-light {
+  color-scheme: light;
+  --body-bg: var(--cozy-plum-900);
+  --text-color: var(--cozy-ink);
+  --app-background:
     radial-gradient(ellipse at top left, rgba(154, 209, 212, 0.25), rgba(43, 31, 56, 0) 60%),
     radial-gradient(ellipse at bottom right, rgba(134, 182, 184, 0.2), rgba(43, 31, 56, 0) 65%),
     var(--cozy-plum-900);
+  --panel-background: var(--cozy-paper);
+  --panel-text-color: var(--cozy-ink);
+  --panel-border-color: rgba(59, 46, 42, 0.18);
+  --panel-shadow: 0 18px 36px rgba(30, 19, 38, 0.28);
+  --panel-backdrop-filter: none;
+  --heading-color: var(--cozy-plum-700);
+  --label-color: rgba(59, 46, 42, 0.75);
+  --checkbox-label-color: rgba(59, 46, 42, 0.85);
+  --input-background: rgba(255, 255, 255, 0.72);
+  --input-border-color: rgba(59, 46, 42, 0.18);
+  --input-text-color: var(--cozy-ink);
+  --input-shadow: 0 8px 24px rgba(27, 19, 28, 0.08);
+  --input-hover-shadow: 0 10px 28px rgba(27, 19, 28, 0.12);
+  --range-accent-color: var(--cozy-accent);
+  --button-background: linear-gradient(140deg, var(--cozy-accent), var(--cozy-accent-2));
+  --button-alt-background: linear-gradient(140deg, rgba(196, 154, 204, 0.9), rgba(105, 80, 135, 0.94));
+  --button-text-color: var(--cozy-ink);
+  --button-alt-text-color: #fef9f0;
+  --button-border: 1px solid rgba(59, 46, 42, 0.18);
+  --button-shadow: 0 12px 28px rgba(30, 19, 38, 0.28);
+  --button-hover-shadow: 0 16px 32px rgba(30, 19, 38, 0.3);
+  --button-active-filter: none;
+  --fab-primary-bg: linear-gradient(140deg, var(--cozy-accent), var(--cozy-accent-2));
+  --fab-secondary-bg: linear-gradient(140deg, rgba(196, 154, 204, 0.9), rgba(105, 80, 135, 0.94));
+  --fab-button-color: var(--cozy-ink);
+  --fab-button-border: 1px solid rgba(255, 255, 255, 0.4);
+  --fab-button-shadow: 0 18px 32px rgba(27, 19, 28, 0.35);
+  --fab-button-hover-shadow: 0 22px 36px rgba(27, 19, 28, 0.38);
+  --fab-button-hover-translate: -4px;
+  --fab-button-active-translate: -1px;
+  --fab-button-hover-filter: none;
+  --fab-button-active-filter: none;
+  --fab-button-focus-shadow: 0 0 0 2px rgba(154, 209, 212, 0.55), 0 22px 38px rgba(27, 19, 28, 0.38);
 }
 
-body.cozy-theme .control-panel {
-  background: var(--cozy-paper);
-  color: var(--cozy-ink);
-  border-radius: 18px;
-  border: 1px solid rgba(59, 46, 42, 0.18);
-  box-shadow: 0 18px 36px rgba(30, 19, 38, 0.28);
-  backdrop-filter: none;
-}
-
-body.cozy-theme .control-panel h2 {
-  font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-  font-size: 20px;
-  font-weight: 400;
-  letter-spacing: 0.04em;
-  text-transform: none;
-  color: var(--cozy-plum-700);
-}
-
-body.cozy-theme .control-group label {
-  font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  font-size: 13px;
-  text-transform: none;
-  letter-spacing: 0.02em;
-  color: rgba(59, 46, 42, 0.75);
-}
-
-body.cozy-theme .control-group input,
-body.cozy-theme .control-group select {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(59, 46, 42, 0.18);
-  border-radius: 14px;
-  color: var(--cozy-ink);
-  box-shadow: 0 8px 24px rgba(27, 19, 28, 0.08);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-body.cozy-theme .control-group input:hover,
-body.cozy-theme .control-group select:hover {
-  box-shadow: 0 10px 28px rgba(27, 19, 28, 0.12);
-}
-
-body.cozy-theme .control-group input:focus-visible,
-body.cozy-theme .control-group select:focus-visible,
-body.cozy-theme .button-row button:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(154, 209, 212, 0.55), 0 12px 28px rgba(134, 182, 184, 0.35);
-}
-
-body.cozy-theme .button-row button {
-  background: linear-gradient(140deg, var(--cozy-accent), var(--cozy-accent-2));
-  color: var(--cozy-ink);
-  border: 1px solid rgba(59, 46, 42, 0.18);
-  border-radius: 16px;
-  box-shadow: 0 12px 28px rgba(30, 19, 38, 0.28);
-}
-
-body.cozy-theme .button-row button:nth-child(2) {
-  background: linear-gradient(140deg, rgba(196, 154, 204, 0.9), rgba(105, 80, 135, 0.94));
-  color: #fef9f0;
-}
-
-body.cozy-theme .button-row button:hover {
-  transform: translateY(-2px);
-  filter: none;
-  box-shadow: 0 16px 32px rgba(30, 19, 38, 0.3);
-}
-
-body.cozy-theme .button-row button:active {
-  transform: translateY(0);
-}
-
-body.cozy-theme .control-group.checkbox label {
-  color: rgba(59, 46, 42, 0.85);
-}
-
-body.cozy-theme input[type='range'] {
-  accent-color: var(--cozy-accent);
-}
-
-body.cozy-theme #fab-cluster button {
-  background: linear-gradient(140deg, var(--cozy-accent), var(--cozy-accent-2));
-  color: var(--cozy-ink);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 18px 32px rgba(27, 19, 28, 0.35);
-  transition: transform 160ms ease, box-shadow 160ms ease;
-}
-
-body.cozy-theme #fab-cluster button:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 22px 36px rgba(27, 19, 28, 0.38);
-}
-
-body.cozy-theme #fab-cluster button:active {
-  transform: translateY(-1px);
-}
-
-body.cozy-theme #fab-cluster button:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(154, 209, 212, 0.55), 0 22px 38px rgba(27, 19, 28, 0.38);
+body.theme-cozy-dark {
+  color-scheme: dark;
+  --body-bg: #1d1426;
+  --text-color: #f6ead6;
+  --app-background:
+    radial-gradient(ellipse at top left, rgba(134, 182, 184, 0.2), rgba(29, 20, 38, 0) 60%),
+    radial-gradient(ellipse at bottom right, rgba(154, 209, 212, 0.22), rgba(29, 20, 38, 0) 65%),
+    #1d1426;
+  --canvas-background:
+    radial-gradient(circle at center, rgba(59, 46, 66, 0.55) 0%, rgba(8, 8, 16, 0.9) 75%);
+  --canvas-image-background:
+    linear-gradient(rgba(23, 16, 31, 0.72), rgba(23, 16, 31, 0.72)),
+    url('assets/CaveImages/cave1.png');
+  --panel-background: rgba(43, 31, 56, 0.88);
+  --panel-text-color: #f6ead6;
+  --panel-border-color: rgba(154, 209, 212, 0.25);
+  --panel-shadow: 0 20px 44px rgba(8, 8, 16, 0.55);
+  --panel-backdrop-filter: blur(10px);
+  --heading-color: rgba(154, 209, 212, 0.88);
+  --label-color: rgba(246, 234, 214, 0.75);
+  --checkbox-label-color: rgba(246, 234, 214, 0.85);
+  --input-background: rgba(246, 234, 214, 0.12);
+  --input-border-color: rgba(246, 234, 214, 0.28);
+  --input-text-color: #f6ead6;
+  --input-shadow: 0 14px 32px rgba(23, 16, 31, 0.34);
+  --input-hover-shadow: 0 18px 38px rgba(23, 16, 31, 0.38);
+  --focus-ring-shadow: 0 0 0 2px rgba(154, 209, 212, 0.55), 0 18px 38px rgba(23, 16, 31, 0.38);
+  --range-accent-color: #86b6b8;
+  --button-background: linear-gradient(140deg, rgba(134, 182, 184, 0.88), rgba(134, 182, 184, 0.72));
+  --button-alt-background: linear-gradient(140deg, rgba(196, 154, 204, 0.85), rgba(105, 80, 135, 0.9));
+  --button-text-color: #1f1426;
+  --button-alt-text-color: #fef9f0;
+  --button-border: 1px solid rgba(246, 234, 214, 0.35);
+  --button-shadow: 0 16px 36px rgba(19, 12, 24, 0.45);
+  --button-hover-shadow: 0 20px 40px rgba(19, 12, 24, 0.48);
+  --button-active-filter: brightness(0.96);
+  --fab-primary-bg: linear-gradient(140deg, rgba(134, 182, 184, 0.88), rgba(134, 182, 184, 0.7));
+  --fab-secondary-bg: linear-gradient(140deg, rgba(196, 154, 204, 0.85), rgba(105, 80, 135, 0.9));
+  --fab-button-color: #1f1426;
+  --fab-button-border: 1px solid rgba(246, 234, 214, 0.4);
+  --fab-button-shadow: 0 22px 38px rgba(19, 12, 24, 0.46);
+  --fab-button-hover-shadow: 0 26px 44px rgba(19, 12, 24, 0.5);
+  --fab-button-hover-translate: -4px;
+  --fab-button-active-translate: -1px;
+  --fab-button-hover-filter: brightness(1.04);
+  --fab-button-active-filter: brightness(0.96);
+  --fab-button-focus-shadow: 0 0 0 2px rgba(154, 209, 212, 0.55), 0 26px 44px rgba(19, 12, 24, 0.5);
 }

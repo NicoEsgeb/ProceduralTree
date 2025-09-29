@@ -31,24 +31,33 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  border: none;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  border: var(--fab-button-border, none);
+  box-shadow: var(--fab-button-shadow, 0 8px 24px rgba(0,0,0,0.4));
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #fff;
-  transition: transform 120ms ease, filter 120ms ease;
-  background: var(--ytp-accent);
+  color: var(--fab-button-color, #fff);
+  transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+  background: var(--fab-primary-bg, var(--ytp-accent));
 }
-
-#fab-cluster button:hover { filter: brightness(1.08); }
-#fab-cluster button:focus { outline: none; box-shadow: var(--ytp-focus); }
-#fab-cluster button:active { transform: translateY(1px); }
+#fab-cluster button:hover {
+  filter: var(--fab-button-hover-filter, brightness(1.05));
+  transform: translateY(var(--fab-button-hover-translate, -2px));
+  box-shadow: var(--fab-button-hover-shadow, 0 12px 30px rgba(0,0,0,0.45));
+}
+#fab-cluster button:focus {
+  outline: none;
+  box-shadow: var(--fab-button-focus-shadow, var(--ytp-focus));
+}
+#fab-cluster button:active {
+  transform: translateY(var(--fab-button-active-translate, 1px));
+  filter: var(--fab-button-active-filter, brightness(0.96));
+}
 #fab-cluster button svg { width: 24px; height: 24px; fill: currentColor; }
 
-#yt-fab { background: var(--ytp-accent); }
-#timer-fab { background: var(--ytp-accent-2); }
+#yt-fab { background: var(--fab-primary-bg, var(--ytp-accent)); }
+#timer-fab { background: var(--fab-secondary-bg, var(--ytp-accent-2)); }
 /* Slide-in panel */
 #yt-panel {
   position: fixed;
@@ -817,6 +826,312 @@ body.cozy-theme #timer-panel .timer-cycle-title {
 body.cozy-theme #timer-panel .timer-cycle-duration {
   font-family: 'DM Sans', 'Segoe UI', sans-serif;
   color: rgba(59, 46, 42, 0.62);
+}
+
+body.theme-cozy-dark {
+  --cozy-dark-surface: rgba(43, 31, 56, 0.92);
+  --cozy-dark-surface-soft: rgba(32, 23, 44, 0.88);
+  --cozy-dark-surface-strong: rgba(29, 20, 38, 0.9);
+  --cozy-dark-border: rgba(154, 209, 212, 0.2);
+  --cozy-dark-border-strong: rgba(154, 209, 212, 0.28);
+  --cozy-dark-text: #f6ead6;
+  --cozy-dark-muted: rgba(246, 234, 214, 0.75);
+  --cozy-dark-soft-muted: rgba(246, 234, 214, 0.65);
+  --cozy-dark-shadow: 0 28px 52px rgba(8, 8, 16, 0.55);
+  --cozy-dark-focus: 0 0 0 2px rgba(154, 209, 212, 0.55), 0 16px 34px rgba(19, 12, 24, 0.48);
+  --cozy-dark-secondary-shadow: 0 18px 34px rgba(19, 12, 24, 0.42);
+}
+
+body.theme-cozy-dark #yt-panel,
+body.theme-cozy-dark #timer-panel {
+  background: var(--cozy-dark-surface);
+  color: var(--cozy-dark-text);
+  border-left: 1px solid var(--cozy-dark-border);
+  border-radius: 24px 0 0 24px;
+  box-shadow: var(--cozy-dark-shadow);
+  background-image:
+    linear-gradient(180deg, rgba(35, 24, 46, 0.94), rgba(27, 18, 35, 0.96) 55%, rgba(16, 10, 24, 0.98)),
+    radial-gradient(120% 160% at 12% 8%, rgba(134, 182, 184, 0.18), transparent 55%),
+    radial-gradient(160% 120% at 88% 92%, rgba(154, 209, 212, 0.16), transparent 60%);
+  background-blend-mode: soft-light, normal, normal;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+body.theme-cozy-dark #yt-panel .yt-topbar,
+body.theme-cozy-dark #timer-panel .timer-topbar {
+  background: var(--cozy-dark-surface-soft);
+  border-bottom: 1px solid var(--cozy-dark-border);
+  box-shadow: inset 0 -1px 0 rgba(16, 10, 24, 0.44);
+}
+
+body.theme-cozy-dark .yt-title,
+body.theme-cozy-dark .timer-title,
+body.theme-cozy-dark .timer-phase-title {
+  font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
+  color: rgba(154, 209, 212, 0.9);
+  letter-spacing: 0.04em;
+}
+
+body.theme-cozy-dark #timer-panel .timer-main {
+  background: linear-gradient(180deg, rgba(37, 26, 50, 0.55), rgba(16, 10, 24, 0.92));
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+}
+
+body.theme-cozy-dark #timer-panel .timer-hero {
+  background: rgba(29, 20, 38, 0.82);
+  border-bottom: 1px solid var(--cozy-dark-border);
+}
+
+body.theme-cozy-dark #timer-panel .timer-phase-badge {
+  background: rgba(134, 182, 184, 0.3);
+  color: rgba(246, 234, 214, 0.96);
+  font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
+  letter-spacing: 0.08em;
+}
+
+body.theme-cozy-dark #timer-panel .timer-phase-subtitle,
+body.theme-cozy-dark #timer-panel .timer-phase-meta,
+body.theme-cozy-dark #yt-panel .yt-nowtitle {
+  color: var(--cozy-dark-soft-muted);
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  font-weight: 500;
+}
+
+body.theme-cozy-dark #timer-panel .timer-countdown {
+  font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
+  color: rgba(154, 209, 212, 0.92);
+  text-shadow: 0 2px 18px rgba(8, 8, 16, 0.6);
+}
+
+body.theme-cozy-dark #timer-panel .timer-progress-track {
+  background: rgba(246, 234, 214, 0.18);
+}
+
+body.theme-cozy-dark #timer-panel .timer-progress-bar {
+  background: linear-gradient(90deg, rgba(134, 182, 184, 0.92), rgba(154, 209, 212, 0.85));
+}
+
+body.theme-cozy-dark #yt-panel .yt-search input[type="search"],
+body.theme-cozy-dark #yt-panel .yt-controls button,
+body.theme-cozy-dark #yt-panel .yt-tab,
+body.theme-cozy-dark #timer-panel input,
+body.theme-cozy-dark #timer-panel select,
+body.theme-cozy-dark #timer-panel textarea,
+body.theme-cozy-dark #timer-panel .timer-controls button,
+body.theme-cozy-dark #timer-panel .timer-actions button,
+body.theme-cozy-dark #timer-panel .timer-todo-form button {
+  border-radius: 16px;
+  border: 1px solid var(--cozy-dark-border-strong);
+  background: rgba(29, 20, 38, 0.78);
+  color: var(--cozy-dark-text);
+  box-shadow: 0 12px 28px rgba(19, 12, 24, 0.4);
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+}
+
+body.theme-cozy-dark #yt-panel .yt-search input[type="search"],
+body.theme-cozy-dark #timer-panel input,
+body.theme-cozy-dark #timer-panel select,
+body.theme-cozy-dark #timer-panel textarea {
+  padding: 8px 12px;
+  background: rgba(24, 16, 34, 0.82);
+  box-shadow: none;
+}
+
+body.theme-cozy-dark #yt-panel .yt-search button,
+body.theme-cozy-dark #yt-panel .yt-controls button,
+body.theme-cozy-dark #timer-panel .timer-actions button,
+body.theme-cozy-dark #timer-panel .timer-controls button:not(.secondary),
+body.theme-cozy-dark #timer-panel .timer-todo-form button {
+  background: linear-gradient(140deg, rgba(134, 182, 184, 0.88), rgba(134, 182, 184, 0.7));
+  color: #1f1426;
+  border-color: rgba(246, 234, 214, 0.3);
+  box-shadow: 0 16px 36px rgba(19, 12, 24, 0.45);
+}
+
+body.theme-cozy-dark #timer-panel .timer-controls button.secondary {
+  background: rgba(24, 16, 34, 0.82);
+  color: var(--cozy-dark-text);
+  border: 1px solid rgba(154, 209, 212, 0.3);
+  box-shadow: 0 12px 24px rgba(8, 8, 16, 0.45);
+}
+
+body.theme-cozy-dark #timer-panel .timer-close {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: rgba(246, 234, 214, 0.65);
+}
+
+body.theme-cozy-dark #yt-panel button,
+body.theme-cozy-dark #timer-panel button {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+body.theme-cozy-dark #yt-panel button:hover,
+body.theme-cozy-dark #timer-panel button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 40px rgba(19, 12, 24, 0.5);
+}
+
+body.theme-cozy-dark #yt-panel button:active,
+body.theme-cozy-dark #timer-panel button:active {
+  transform: translateY(0);
+}
+
+body.theme-cozy-dark #yt-panel button:focus-visible,
+body.theme-cozy-dark #yt-panel input:focus-visible,
+body.theme-cozy-dark #yt-panel select:focus-visible,
+body.theme-cozy-dark #timer-panel button:focus-visible,
+body.theme-cozy-dark #timer-panel input:focus-visible,
+body.theme-cozy-dark #timer-panel textarea:focus-visible,
+body.theme-cozy-dark #timer-panel select:focus-visible {
+  outline: none;
+  box-shadow: var(--cozy-dark-focus);
+}
+
+body.theme-cozy-dark #yt-panel .yt-tab {
+  background: rgba(24, 16, 34, 0.82);
+  color: rgba(246, 234, 214, 0.6);
+}
+
+body.theme-cozy-dark #yt-panel .yt-tab.active {
+  color: var(--cozy-dark-text);
+  background: linear-gradient(140deg, rgba(134, 182, 184, 0.32), rgba(94, 164, 176, 0.22));
+}
+
+body.theme-cozy-dark #yt-panel .yt-player-wrap {
+  background: rgba(19, 12, 24, 0.85);
+  border-bottom: 1px solid rgba(154, 209, 212, 0.16);
+}
+
+body.theme-cozy-dark #yt-panel .yt-controls {
+  background: rgba(24, 16, 34, 0.86);
+  border-bottom: 1px solid rgba(154, 209, 212, 0.18);
+}
+
+body.theme-cozy-dark #yt-panel .yt-card,
+body.theme-cozy-dark #yt-panel .yt-suggestion,
+body.theme-cozy-dark #yt-panel .yt-message {
+  background: rgba(26, 18, 36, 0.9);
+  border: 1px solid rgba(154, 209, 212, 0.18);
+  color: var(--cozy-dark-text);
+  box-shadow: 0 20px 38px rgba(8, 8, 16, 0.48);
+}
+
+body.theme-cozy-dark #yt-panel .yt-message {
+  border-radius: 16px;
+}
+
+body.theme-cozy-dark #yt-panel .yt-footer {
+  background: rgba(24, 16, 34, 0.9);
+  border-top: 1px solid rgba(154, 209, 212, 0.2);
+  color: rgba(246, 234, 214, 0.6);
+}
+
+body.theme-cozy-dark #yt-panel .yt-card .yt-meta .t,
+body.theme-cozy-dark #yt-panel .yt-suggestion-body .name {
+  color: var(--cozy-dark-text);
+}
+
+body.theme-cozy-dark #yt-panel .yt-card .yt-meta .s,
+body.theme-cozy-dark #yt-panel .yt-suggestion-body .desc {
+  color: var(--cozy-dark-soft-muted);
+}
+
+body.theme-cozy-dark #timer-panel .timer-cycle-item,
+body.theme-cozy-dark #timer-panel .timer-todo-item {
+  color: var(--cozy-dark-text);
+}
+
+body.theme-cozy-dark #timer-panel .timer-cycle-item {
+  background: rgba(26, 18, 36, 0.9);
+  border: 1px solid rgba(154, 209, 212, 0.24);
+  border-radius: 18px;
+  box-shadow: 0 18px 34px rgba(8, 8, 16, 0.45);
+}
+
+body.theme-cozy-dark #timer-panel .timer-cycle-item[data-state="active"] {
+  border-color: rgba(154, 209, 212, 0.45);
+  box-shadow: 0 22px 36px rgba(8, 8, 16, 0.52);
+}
+
+body.theme-cozy-dark #timer-panel .timer-cycle-item[data-state="upnext"] {
+  border-color: rgba(154, 209, 212, 0.28);
+}
+
+body.theme-cozy-dark #timer-panel .timer-cycle-title {
+  font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
+  color: rgba(154, 209, 212, 0.88);
+}
+
+body.theme-cozy-dark #timer-panel .timer-cycle-duration {
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  color: var(--cozy-dark-soft-muted);
+}
+
+body.theme-cozy-dark #timer-panel .timer-todo-title {
+  color: rgba(154, 209, 212, 0.9);
+  font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
+}
+
+body.theme-cozy-dark #timer-panel .timer-todo-form {
+  background: rgba(24, 16, 34, 0.85);
+  padding: 12px;
+  gap: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--cozy-dark-border-strong);
+  box-shadow: var(--cozy-dark-secondary-shadow);
+}
+
+body.theme-cozy-dark #timer-panel .timer-todo-form input {
+  background: rgba(19, 12, 24, 0.82);
+  border: 1px solid rgba(154, 209, 212, 0.28);
+  color: var(--cozy-dark-text);
+}
+
+body.theme-cozy-dark #timer-panel .timer-todo-form input::placeholder {
+  color: rgba(246, 234, 214, 0.45);
+}
+
+body.theme-cozy-dark #timer-panel .timer-todo-form button {
+  box-shadow: 0 16px 32px rgba(19, 12, 24, 0.48);
+}
+
+body.theme-cozy-dark #timer-panel .timer-todo-item {
+  border: 1px solid rgba(154, 209, 212, 0.24);
+  background: rgba(24, 16, 34, 0.88);
+  box-shadow: 0 18px 32px rgba(8, 8, 16, 0.42);
+}
+
+body.theme-cozy-dark #timer-panel .timer-todo-item[data-complete="true"] .timer-todo-text {
+  color: rgba(246, 234, 214, 0.45);
+}
+
+body.theme-cozy-dark #timer-panel .timer-todo-delete {
+  color: rgba(246, 234, 214, 0.58);
+}
+
+body.theme-cozy-dark #timer-panel .timer-todo-delete:hover {
+  color: #f87373;
+}
+
+body.theme-cozy-dark #timer-panel .timer-todo-checkbox {
+  accent-color: rgba(154, 209, 212, 0.9);
+}
+
+body.theme-cozy-dark #timer-panel .timer-footer {
+  color: rgba(246, 234, 214, 0.55);
+  border-top: 1px solid rgba(154, 209, 212, 0.18);
+}
+
+body.theme-cozy-dark #timer-panel .timer-todo-delete:focus-visible {
+  box-shadow: var(--cozy-dark-focus);
+}
+
+body.theme-cozy-dark #yt-volume,
+body.theme-cozy-dark .timer-controls input[type="range"] {
+  accent-color: rgba(154, 209, 212, 0.85);
 }
 
 body.cozy-theme #timer-panel .timer-todo-title {

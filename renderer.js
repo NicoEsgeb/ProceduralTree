@@ -39,7 +39,20 @@ const randomRanges = {
 };
 
 const THEME_STORAGE_KEY = 'ui.theme';
-let activeTheme = 'classic';
+const THEME_MODE_STORAGE_KEY = 'ui.theme.mode';
+const THEME_DEFINITIONS = {
+  classic: {
+    modes: ['light', 'dark'],
+    defaultMode: 'dark'
+  },
+  cozy: {
+    modes: ['light', 'dark'],
+    defaultMode: 'light'
+  }
+};
+
+let activeThemeName = 'classic';
+let activeThemeMode = 'dark';
 
 const canvasContainer = document.querySelector('#canvas-container');
 const paneContainer = document.querySelector('#pane-container');
@@ -81,31 +94,75 @@ const controls = {
   spotifyLinkHint: document.querySelector('#spotifyLinkHint'),
   spotifyLoginBtn: document.querySelector('#spotifyLoginBtn'),
   spotifyOpenBtn: document.querySelector('#spotifyOpenBtn'),
-  themeSelect: document.querySelector('#theme-select')
+  themeSelect: document.querySelector('#theme-select'),
+  themeModeBtn: document.querySelector('#theme-mode-btn')
 };
 
 function readStoredTheme() {
+  let theme = 'classic';
+  let mode = THEME_DEFINITIONS.classic.defaultMode;
   try {
-    const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    return stored === 'cozy' ? 'cozy' : 'classic';
+    const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    if (storedTheme && storedTheme in THEME_DEFINITIONS) {
+      theme = storedTheme;
+    }
+    const storedMode = localStorage.getItem(THEME_MODE_STORAGE_KEY);
+    if (storedMode && THEME_DEFINITIONS[theme].modes.includes(storedMode)) {
+      mode = storedMode;
+    } else {
+      mode = THEME_DEFINITIONS[theme].defaultMode;
+    }
   } catch (_e) {
-    return 'classic';
+    theme = 'classic';
+    mode = THEME_DEFINITIONS.classic.defaultMode;
   }
+  return { theme, mode };
 }
 
-function applyThemeClass(theme) {
-  activeTheme = theme === 'cozy' ? 'cozy' : 'classic';
+function applyThemeClass(theme, mode) {
+  const themeKey = theme in THEME_DEFINITIONS ? theme : 'classic';
+  const themeDef = THEME_DEFINITIONS[themeKey];
+  const nextMode = themeDef.modes.includes(mode) ? mode : themeDef.defaultMode;
+
+  activeThemeName = themeKey;
+  activeThemeMode = nextMode;
+
   if (typeof document !== 'undefined' && document.body) {
-    document.body.classList.toggle('cozy-theme', activeTheme === 'cozy');
+    const classesToRemove = Array.from(document.body.classList).filter(cls =>
+      cls.startsWith('theme-') || cls === 'cozy-theme'
+    );
+    if (classesToRemove.length) {
+      document.body.classList.remove(...classesToRemove);
+    }
+    const className = `theme-${themeKey}-${nextMode}`;
+    document.body.classList.add(className);
+    if (themeKey === 'cozy') {
+      document.body.classList.add('cozy-theme');
+    }
   }
-  if (controls.themeSelect && controls.themeSelect.value !== activeTheme) {
-    controls.themeSelect.value = activeTheme;
+
+  updateThemeControlsUI();
+
+  persistTheme(themeKey, nextMode);
+}
+
+function updateThemeControlsUI() {
+  if (controls.themeSelect && controls.themeSelect.value !== activeThemeName) {
+    controls.themeSelect.value = activeThemeName;
+  }
+
+  if (controls.themeModeBtn) {
+    const isDark = activeThemeMode === 'dark';
+    controls.themeModeBtn.dataset.mode = isDark ? 'dark' : 'light';
+    controls.themeModeBtn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+    controls.themeModeBtn.textContent = isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode';
   }
 }
 
-function persistTheme(theme) {
+function persistTheme(theme, mode) {
   try {
     localStorage.setItem(THEME_STORAGE_KEY, theme);
+    localStorage.setItem(THEME_MODE_STORAGE_KEY, mode);
   } catch (_e) {
     // ignore storage failures
   }
@@ -113,15 +170,25 @@ function persistTheme(theme) {
 
 function initThemeSelector() {
   const initialTheme = readStoredTheme();
-  applyThemeClass(initialTheme);
+  applyThemeClass(initialTheme.theme, initialTheme.mode);
   if (controls.themeSelect) {
-    controls.themeSelect.value = initialTheme;
+    controls.themeSelect.value = initialTheme.theme;
     controls.themeSelect.addEventListener('change', (event) => {
       const target = event.target;
       if (!(target instanceof HTMLSelectElement)) return;
-      const selected = target.value === 'cozy' ? 'cozy' : 'classic';
-      applyThemeClass(selected);
-      persistTheme(selected);
+      const selected = target.value in THEME_DEFINITIONS ? target.value : 'classic';
+      const themeDef = THEME_DEFINITIONS[selected];
+      const desiredMode = themeDef.modes.includes(activeThemeMode) ? activeThemeMode : themeDef.defaultMode;
+      applyThemeClass(selected, desiredMode);
+    });
+  }
+
+  if (controls.themeModeBtn) {
+    controls.themeModeBtn.addEventListener('click', () => {
+      const themeDef = THEME_DEFINITIONS[activeThemeName];
+      const toggledMode = activeThemeMode === 'dark' ? 'light' : 'dark';
+      const nextMode = themeDef.modes.includes(toggledMode) ? toggledMode : themeDef.defaultMode;
+      applyThemeClass(activeThemeName, nextMode);
     });
   }
 }
@@ -1627,7 +1694,7 @@ function refreshControls() {
   const s = String(settings.renderScale ?? 1);
   if (controls.renderScaleInput) controls.renderScaleInput.value = s;
   if (controls.renderScaleRange) controls.renderScaleRange.value = s;
-  if (controls.themeSelect) controls.themeSelect.value = activeTheme;
+  updateThemeControlsUI();
 }
 
 function setSeedValue(newSeed, { refresh = true, redraw = true } = {}) {
