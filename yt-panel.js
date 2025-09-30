@@ -11,6 +11,7 @@
   const LS_API_KEY = 'youtube.apiKey';
   const LS_LAST_TAB = 'youtube.tab';
 
+  
   const FEATURED_SUGGESTIONS = [
     {
       label: 'lofi hip hop radio 📚',
