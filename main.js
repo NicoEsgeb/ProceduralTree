@@ -104,6 +104,7 @@ function buildMenuTemplate() {
         { role: 'quit' }
       ]
     });
+    
   }
 
   return template;
