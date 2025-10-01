@@ -49,9 +49,9 @@ function friendlyAuthErrorMessage(error, supabaseError) {
     return 'That took a bit too long. Please try again.';
   }
   if (/network|connection|fetch/i.test(raw)) {
-    return 'We couldn't reach the sync service. Please check your connection and try again.';
+    return "We couldn't reach the sync service. Please check your connection and try again.";
   }
-  return 'We couldn't finish that request. Please try again.';
+  return "We couldn't finish that request. Please try again.";
 }
 
 function noteSupabaseSetupIssue(error) {

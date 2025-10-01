@@ -14,14 +14,18 @@ let state = {
     listeners.forEach(fn => {
       try {
         fn(snapshot);
-      } catch {}
+    } catch (error) {
+        console.warn('ClickTree auth listener failed', error);
+      }
     });
     try {
       localStorage.setItem('ClickTreeAccount', JSON.stringify({
         user: state.user,
         lastSyncAt: state.lastSyncAt
       }));
-    } catch {}
+    } catch (error) {
+        console.warn('ClickTree auth state could not be saved', error);
+      }
   }
   
   export async function initializeAuth() {
@@ -32,7 +36,9 @@ let state = {
         state.user = saved.user || null;
         state.lastSyncAt = saved.lastSyncAt || null;
       }
-    } catch {}
+    } catch (error) {
+        console.warn('ClickTree auth state could not be restored', error);
+      }
     emit();
   }
   
@@ -41,7 +47,9 @@ let state = {
       listeners.add(fn);
       try {
         fn({ ...state });
-      } catch {}
+    } catch (error) {
+        console.warn('ClickTree auth subscriber rejected initial state', error);
+      }
     }
     return () => listeners.delete(fn);
   }
