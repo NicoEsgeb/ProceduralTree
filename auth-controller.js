@@ -58,17 +58,24 @@ let state = {
     state.isAuthenticating = true;
     state.lastError = null;
     emit();
-    await new Promise(r => setTimeout(r, 400));
-    // Fake a user for now; Step 2 will replace this with real Google OAuth.
-    state.user = { email: 'you@example.com' };
-    state.isAuthenticating = false;
-    emit();
+    try {
+      const result = await window.clickTreeAPI?.googleLogin?.();
+      if (!result?.ok) throw new Error(result?.error || 'login-failed');
+      state.user = result.user || null;
+    } catch (err) {
+      state.lastError = err;
+    } finally {
+      state.isAuthenticating = false;
+      emit();
+    }
   }
   
   export async function signOut() {
     state.isAuthenticating = true;
     emit();
-    await new Promise(r => setTimeout(r, 200));
+    try {
+      await window.clickTreeAPI?.googleLogout?.();
+    } catch (_) {}
     state.user = null;
     state.isAuthenticating = false;
     emit();

@@ -16,6 +16,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "google-oauth.json",
       "index.html",
       "renderer.js",
       "panel-registry.js",

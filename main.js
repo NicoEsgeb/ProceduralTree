@@ -1,6 +1,9 @@
 const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
+const http = require('http');
+const crypto = require('crypto');
+const { URL } = require('url');
 const ytSearch = require('yt-search');
 
 let nodeFetch = (typeof fetch === 'function') ? fetch.bind(globalThis) : null;
@@ -353,3 +356,129 @@ ipcMain.handle('youtube:checkEmbeddable', async (_event, videoId) => {
     return { ok: false, embeddable: null, error: reason };
   }
 });
+
+ipcMain.handle('google:login', async () => {
+  try {
+    const cfgPath = path.join(__dirname, 'google-oauth.json');
+    const cfgRaw = await fs.readFile(cfgPath, 'utf8');
+    const { client_id } = JSON.parse(cfgRaw || '{}');
+    if (!client_id) return { ok: false, error: 'missing-client-id' };
+
+    const codeVerifier = base64url(crypto.randomBytes(32));
+    const codeChallenge = base64url(crypto.createHash('sha256').update(codeVerifier).digest());
+    const state = base64url(crypto.randomBytes(16));
+
+    const serverInfo = await startLoopbackServer();
+    const redirectUri = `http://127.0.0.1:${serverInfo.port}/callback`;
+
+    const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('client_id', client_id);
+    authUrl.searchParams.set('redirect_uri', redirectUri);
+    authUrl.searchParams.set('scope', 'openid email profile');
+    authUrl.searchParams.set('code_challenge', codeChallenge);
+    authUrl.searchParams.set('code_challenge_method', 'S256');
+    authUrl.searchParams.set('access_type', 'offline');
+    authUrl.searchParams.set('prompt', 'select_account');
+    authUrl.searchParams.set('state', state);
+
+    await shell.openExternal(authUrl.toString());
+
+    const { code, returnedState, error } = await serverInfo.waitForCallback();
+    serverInfo.close();
+    if (error) return { ok: false, error };
+    if (!code || returnedState !== state) return { ok: false, error: 'state-mismatch' };
+
+    const tokenRes = await nodeFetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        client_id,
+        redirect_uri: redirectUri,
+        code_verifier: codeVerifier
+      }).toString()
+    });
+    const tokenJson = await tokenRes.json();
+    if (!tokenRes.ok) {
+      return { ok: false, error: tokenJson?.error || 'token-exchange-failed' };
+    }
+
+    const idToken = tokenJson.id_token;
+    const claims = parseIdToken(idToken);
+    const user = {
+      email: claims?.email || '',
+      name: claims?.name || '',
+      picture: claims?.picture || ''
+    };
+    if (!user.email) return { ok: false, error: 'no-email-in-idtoken' };
+
+    return { ok: true, user };
+  } catch (e) {
+    return { ok: false, error: e?.message || 'google-login-failed' };
+  }
+});
+
+ipcMain.handle('google:logout', async () => {
+  return { ok: true };
+});
+
+function base64url(bufOrStr) {
+  return Buffer.from(bufOrStr)
+    .toString('base64')
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function parseIdToken(idToken) {
+  if (!idToken || typeof idToken !== 'string') return null;
+  const parts = idToken.split('.');
+  if (parts.length < 2) return null;
+  try {
+    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json = Buffer.from(payload, 'base64').toString('utf8');
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+function startLoopbackServer() {
+  return new Promise((resolve) => {
+    const server = http.createServer((req, res) => {});
+    server.listen(0, '127.0.0.1', () => {
+      const port = server.address().port;
+      let resolver = null;
+
+      server.on('request', (req, res) => {
+        try {
+          const u = new URL(req.url, `http://127.0.0.1:${port}`);
+          if (u.pathname === '/callback') {
+            const code = u.searchParams.get('code');
+            const returnedState = u.searchParams.get('state');
+            const error = u.searchParams.get('error') || '';
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end('<html><body>You can close this window.</body></html>');
+            resolver?.({ code, returnedState, error });
+          } else {
+            res.writeHead(404);
+            res.end();
+          }
+        } catch {
+          res.writeHead(500);
+          res.end();
+        }
+      });
+
+      resolve({
+        port,
+        waitForCallback: () => new Promise((r) => { resolver = r; }),
+        close: () => {
+          try {
+            server.close();
+          } catch {}
+        }
+      });
+    });
+  });
+}

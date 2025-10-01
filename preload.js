@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('clickTreeAPI', {
   openExternal: (url) => ipcRenderer.invoke('util:openExternal', url),
   youtubeSearch: (query) => ipcRenderer.invoke('youtube:search', query),
   youtubeCheckEmbeddable: (videoId) => ipcRenderer.invoke('youtube:checkEmbeddable', videoId),
+  googleLogin: () => ipcRenderer.invoke('google:login'),
+  googleLogout: () => ipcRenderer.invoke('google:logout'),
   onMenuAction: (callback) => {
     if (typeof callback !== 'function') {
       return () => {};
