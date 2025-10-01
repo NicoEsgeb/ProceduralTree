@@ -1,4 +1,4 @@
-import { initializeAuth, subscribe, signInWithGoogle, signOut, syncNow, getLastSyncAt } from './auth/auth-controller.js';
+import { initializeAuth, subscribe, signInWithGoogle, signOut, syncNow, getLastSyncAt } from './auth-controller.js';
 
 const PANEL_ID = 'auth-panel';
 

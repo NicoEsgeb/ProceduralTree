@@ -26,6 +26,7 @@
       "styles.css",
       "panels.css",
       "auth-panel.js",
+      "auth-controller.js",
       "auth/**/*",
       "vendor/**/*",
       "assets/**/*"
