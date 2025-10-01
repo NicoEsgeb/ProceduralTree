@@ -82,6 +82,16 @@
     transform: translateY(var(--fab-button-hover-translate, -2px));
     box-shadow: var(--fab-button-hover-shadow, 0 12px 30px rgba(0,0,0,0.45));
   }
+
+  /* Profile FAB states */
+  #account-fab {
+    background: var(--fab-secondary-bg, #7aa7b7);
+    font-weight: 700;
+  }
+
+  #account-fab[data-signed-in="true"] {
+    background: #5dbb63;
+  }
   
   #fab-cluster .fab:focus {
     outline: none;

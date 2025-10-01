@@ -22,6 +22,17 @@ let supabaseHintShown = false;
 let openFallbackTimer = null;
 let registeredWithManager = false;
 
+function updateFabVisual(user) {
+  const btn = fabBtn || document.getElementById('account-fab');
+  if (!btn) return;
+  const email = user?.email || '';
+  const initial = email ? email.trim().charAt(0).toUpperCase() : '👤';
+  btn.textContent = initial || '👤';
+  btn.dataset.signedIn = user ? 'true' : 'false';
+  btn.title = user ? `Profile (${email})` : 'Profile';
+  btn.setAttribute('aria-label', btn.title);
+}
+
 function friendlyAuthErrorMessage(error, supabaseError) {
   const relevantError = error || supabaseError;
   const raw = relevantError?.message || '';
@@ -273,6 +284,8 @@ function render(state) {
       errorEl.textContent = '';
     }
   }
+
+  updateFabVisual(user);
 }
 
 async function handleSignInClick() {
@@ -366,6 +379,7 @@ function registerFab() {
   fabBtn = button || fabBtn;
   if (!button) return;
   wireFab(button);
+  updateFabVisual(currentState?.user);
 
   if (!fabObserver) {
     fabObserver = new MutationObserver(() => {
@@ -373,6 +387,7 @@ function registerFab() {
       if (nextButton && nextButton !== fabBtn) {
         fabBtn = nextButton;
         wireFab(nextButton);
+        updateFabVisual(currentState?.user);
       }
     });
     const fabCluster = document.getElementById('fab-cluster') || document.body;
@@ -410,3 +425,11 @@ window.AccountPanel = AccountPanel;
 registerFab();
 
 registerWithFloatingPanels();
+
+document.addEventListener('keydown', (event) => {
+  const mod = event.metaKey || event.ctrlKey;
+  if (!mod || !event.shiftKey) return;
+  if ((event.key || '').toLowerCase() !== 'p') return;
+  event.preventDefault();
+  AccountPanel.toggle();
+});
