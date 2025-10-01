@@ -51,16 +51,17 @@
     if (!panel) {
       const el = document.createElement('aside');
       el.id = 'timer-panel';
+      el.classList.add('panel-shell');
       el.setAttribute('aria-hidden', 'true');
       el.innerHTML = `
-        <header class="timer-topbar">
+        <header class="panel-topbar timer-topbar">
           <div class="timer-title">Study Timer</div>
           <div class="timer-actions">
             <button id="timer-reset" type="button">Reset Cycle</button>
             <button id="timer-close" class="timer-close" type="button" aria-label="Close study timer">✕</button>
           </div>
         </header>
-        <main class="timer-main">
+        <main class="panel-content timer-main">
           <section class="timer-hero" aria-labelledby="timer-phase-title">
             <div class="timer-phase-meta">
               <span class="timer-phase-badge" id="timer-phase-badge"></span>
@@ -94,6 +95,8 @@
       `;
       document.body.appendChild(el);
       panel = el;
+    } else if (!panel.classList.contains('panel-shell')) {
+      panel.classList.add('panel-shell');
     }
 
     cacheElements();
@@ -403,26 +406,52 @@
     panel.setAttribute('aria-hidden', 'true');
   }
 
-  const TimerPanel = {
-    open(options = {}) {
-      if (!options.fromManager && window.FloatingPanels?.open) {
-        window.FloatingPanels.open(PANEL_ID);
-        return;
+  const timerController = window.createPanelController({
+    id: PANEL_ID,
+    ensurePanel: () => ensurePanel(),
+    getElement: () => panel || document.getElementById('timer-panel'),
+    onOpen: () => openPanelInternal(),
+    onClose: () => closePanelInternal(),
+    ensureFab: ({ cluster, controller }) => {
+      if (!cluster) return;
+      let btn = cluster.querySelector('#timer-fab');
+      if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'timer-fab';
+        btn.type = 'button';
+        btn.classList.add('fab');
+        btn.title = 'Study Timer';
+        btn.setAttribute('aria-label', 'Open Study Timer panel');
+        btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 1h-6v2h6V1zm-2 15h-2V9h2v7zm7-5c0 4.97-4.03 9-9 9s-9-4.03-9-9c0-4.62 3.5-8.44 8-8.94V4h2V2.06c4.5.5 8 4.32 8 8.94zm-2 0c0-3.86-3.14-7-7-7s-7 3.14-7 7 3.14 7 7 7 7-3.14 7-7z"/></svg>';
+        cluster.appendChild(btn);
+      } else {
+        btn.type = 'button';
+        btn.classList.add('fab');
+        btn.title = btn.title || 'Study Timer';
+        btn.setAttribute('aria-label', btn.getAttribute('aria-label') || 'Open Study Timer panel');
       }
-      openPanelInternal();
+      if (!btn.dataset.panelWired) {
+        btn.dataset.panelWired = 'true';
+        btn.addEventListener('click', (event) => {
+          event.preventDefault();
+          controller.toggle();
+        });
+      }
+    },
+    transitionMs: 220
+  });
+
+  const TimerPanel = {
+    ensurePanel: () => timerController.ensurePanel(),
+    ensureFab: () => timerController.ensureFab?.(),
+    open(options = {}) {
+      timerController.open(options);
     },
     close(options = {}) {
-      if (!panel) return;
-      if (!options.fromManager && window.FloatingPanels?.close) {
-        window.FloatingPanels.close(PANEL_ID);
-        return;
-      }
-      closePanelInternal();
+      timerController.close(options);
     },
     toggle() {
-      const isOpen = panel?.classList.contains('open');
-      if (isOpen) this.close();
-      else this.open();
+      timerController.toggle();
     }
   };
 
@@ -444,10 +473,5 @@
   window.TimerPanel = TimerPanel;
   window.Timer = Timer;
 
-  window.FloatingPanels?.register(PANEL_ID, {
-    open: () => openPanelInternal(),
-    close: () => closePanelInternal(),
-    getElement: () => panel || document.getElementById('timer-panel'),
-    transitionMs: 220
-  });
+  timerController.ensureFab?.();
 })();

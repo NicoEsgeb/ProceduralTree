@@ -5,6 +5,7 @@
 
 (function() {
   const DEFAULT_TRANSITION_MS = 260;
+  const FAB_CLUSTER_ID = 'fab-cluster';
   const registry = new Map();
   let activeId = null;
   let pendingOpen = null; // { token, id }
@@ -48,6 +49,16 @@
       const timerId = window.setTimeout(cleanup, duration + 80);
       el.addEventListener('transitionend', onTransitionEnd);
     });
+  }
+
+  function ensureFabCluster() {
+    let cluster = document.getElementById(FAB_CLUSTER_ID);
+    if (!cluster) {
+      cluster = document.createElement('div');
+      cluster.id = FAB_CLUSTER_ID;
+      document.body.appendChild(cluster);
+    }
+    return cluster;
   }
 
   const FloatingPanels = {
@@ -125,4 +136,95 @@
   };
 
   window.FloatingPanels = FloatingPanels;
+  window.ensureFabCluster = ensureFabCluster;
+  window.createPanelController = function(options = {}) {
+    const { id, ensurePanel, getElement, onOpen, onClose, ensureFab, transitionMs } = options;
+    if (!id) throw new Error('createPanelController requires an id');
+
+    let panelElement = null;
+
+    const resolvePanel = () => {
+      if (typeof ensurePanel === 'function') {
+        const result = ensurePanel();
+        if (result instanceof HTMLElement) {
+          panelElement = result;
+        }
+      }
+      if (!panelElement && typeof getElement === 'function') {
+        const candidate = getElement();
+        if (candidate instanceof HTMLElement) {
+          panelElement = candidate;
+        }
+      }
+      return panelElement || null;
+    };
+
+    const openInternal = (payload = {}) => {
+      if (typeof onOpen === 'function') {
+        onOpen(payload);
+      }
+    };
+
+    const closeInternal = (payload = {}) => {
+      if (typeof onClose === 'function') {
+        onClose(payload);
+      }
+    };
+
+    const controller = {
+      ensurePanel: resolvePanel,
+      open(options = {}) {
+        const opts = options || {};
+        resolvePanel();
+        if (!opts.fromManager && window.FloatingPanels?.open) {
+          window.FloatingPanels.open(id);
+          return;
+        }
+        openInternal(opts);
+      },
+      close(options = {}) {
+        const opts = options || {};
+        if (!opts.fromManager && window.FloatingPanels?.close) {
+          window.FloatingPanels.close(id);
+          return;
+        }
+        closeInternal(opts);
+      },
+      toggle() {
+        const el = resolvePanel();
+        const isOpen = !!(el && el.classList && el.classList.contains('open'));
+        if (isOpen) {
+          controller.close();
+        } else {
+          controller.open();
+        }
+      }
+    };
+
+    if (typeof ensureFab === 'function') {
+      controller.ensureFab = () => {
+        const cluster = ensureFabCluster();
+        ensureFab({ cluster, controller });
+      };
+    }
+
+    const registerOptions = {
+      open: () => {
+        resolvePanel();
+        openInternal({ fromManager: true });
+      },
+      close: () => {
+        closeInternal({ fromManager: true });
+      },
+      getElement: () => resolvePanel()
+    };
+
+    if (typeof transitionMs === 'number') {
+      registerOptions.transitionMs = transitionMs;
+    }
+
+    FloatingPanels.register(id, registerOptions);
+
+    return controller;
+  };
 })();

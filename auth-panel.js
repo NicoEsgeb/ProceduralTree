@@ -16,11 +16,7 @@ let syncPillEl;
 let errorEl;
 let configNoticeEl;
 let fabBtn;
-<<<<<<< ours
-let fabListenerAttached = false;
-=======
 let fabObserver = null;
->>>>>>> theirs
 let currentState = null;
 let supabaseHintShown = false;
 let openFallbackTimer = null;
@@ -366,21 +362,6 @@ function wireFab(button) {
 }
 
 function registerFab() {
-<<<<<<< ours
-  if (fabListenerAttached) return;
-  fabListenerAttached = true;
-
-  document.addEventListener('click', (event) => {
-    const target = event.target;
-    if (!(target instanceof Element)) return;
-    const button = target.closest('#account-fab');
-    if (!button) return;
-
-    fabBtn = button;
-    event.preventDefault();
-    AccountPanel.toggle();
-  });
-=======
   const button = document.getElementById('account-fab');
   fabBtn = button || fabBtn;
   if (!button) return;
@@ -397,7 +378,6 @@ function registerFab() {
     const fabCluster = document.getElementById('fab-cluster') || document.body;
     fabObserver.observe(fabCluster, { childList: true, subtree: true });
   }
->>>>>>> theirs
 }
 
 function registerWithFloatingPanels(attempt = 0) {

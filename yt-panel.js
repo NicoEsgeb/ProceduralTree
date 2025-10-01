@@ -134,13 +134,21 @@
   const EMBED_CHECK_CACHE = new Map();
 
   function ensurePanel() {
-    if (document.getElementById('yt-panel')) return;
+    const existing = document.getElementById('yt-panel');
+    if (existing) {
+      panel = existing;
+      if (!panel.classList.contains('panel-shell')) {
+        panel.classList.add('panel-shell');
+      }
+      return panel;
+    }
     const el = document.createElement('aside');
     el.id = 'yt-panel';
+    el.classList.add('panel-shell');
     el.setAttribute('aria-hidden', 'true');
     el.innerHTML = `
       <div class="yt-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize YouTube panel" tabindex="0"></div>
-      <header class="yt-topbar">
+      <header class="panel-topbar yt-topbar">
         <div class="yt-title">YouTube</div>
         <div class="yt-tabs" role="tablist">
           <button id="yt-tab-search" class="yt-tab active" role="tab" aria-selected="true" aria-controls="yt-tabpanel-search">Search</button>
@@ -167,7 +175,7 @@
         <input id="yt-volume" type="range" min="0" max="100" step="1" aria-label="Volume" />
         <div id="yt-nowtitle" class="yt-nowtitle" title=""></div>
       </div>
-      <main class="yt-content">
+      <main class="panel-content yt-content">
         <section id="yt-tabpanel-search" class="yt-tabpanel active" role="tabpanel" aria-labelledby="yt-tab-search">
           <div id="yt-api-key-tip" class="yt-apikey-tip" hidden>
             <label>Optional API key
@@ -218,6 +226,7 @@
     wireUI();
     disableControls(true);
     initYouTubePlayer();
+    return panel;
   }
 
   function wireUI() {
@@ -1108,26 +1117,52 @@
     panel.setAttribute('aria-hidden', 'true');
   }
 
-  const YtPanel = {
-    open(options = {}) {
-      if (!options.fromManager && window.FloatingPanels?.open) {
-        window.FloatingPanels.open(PANEL_ID);
-        return;
+  const ytController = window.createPanelController({
+    id: PANEL_ID,
+    ensurePanel: () => ensurePanel(),
+    getElement: () => panel,
+    onOpen: () => openPanelInternal(),
+    onClose: () => closePanelInternal(),
+    ensureFab: ({ cluster, controller }) => {
+      if (!cluster) return;
+      let btn = cluster.querySelector('#yt-fab');
+      if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'yt-fab';
+        btn.type = 'button';
+        btn.classList.add('fab');
+        btn.title = 'YouTube (Cmd/Ctrl+Shift+Y)';
+        btn.setAttribute('aria-label', 'Open YouTube panel');
+        btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 15l5.19-3L10 9v6zm11-3c0 2.12-.17 3.5-.5 4.38-.33.9-1.05 1.62-1.95 1.95C17.67 18.67 12 18.67 12 18.67s-5.67 0-6.55-.34c-.9-.33-1.62-1.05-1.95-1.95C3.17 15.5 3 14.12 3 12c0-2.12.17-3.5.5-4.38.33-.9 1.05-1.62 1.95-1.95C6.33 5.33 12 5.33 12 5.33s5.67 0 6.55.34c.9.33 1.62 1.05 1.95 1.95.33.88.5 2.26.5 4.38z"/></svg>';
+        cluster.appendChild(btn);
+      } else {
+        btn.type = 'button';
+        btn.classList.add('fab');
+        btn.title = btn.title || 'YouTube (Cmd/Ctrl+Shift+Y)';
+        btn.setAttribute('aria-label', btn.getAttribute('aria-label') || 'Open YouTube panel');
       }
-      openPanelInternal();
+      if (!btn.dataset.panelWired) {
+        btn.dataset.panelWired = 'true';
+        btn.addEventListener('click', (event) => {
+          event.preventDefault();
+          controller.toggle();
+        });
+      }
+    },
+    transitionMs: 220
+  });
+
+  const YtPanel = {
+    ensurePanel: () => ytController.ensurePanel(),
+    ensureFab: () => ytController.ensureFab?.(),
+    open(options = {}) {
+      ytController.open(options);
     },
     close(options = {}) {
-      if (!panel) return;
-      if (!options.fromManager && window.FloatingPanels?.close) {
-        window.FloatingPanels.close(PANEL_ID);
-        return;
-      }
-      closePanelInternal();
+      ytController.close(options);
     },
     toggle() {
-      const isOpen = panel?.classList.contains('open');
-      if (isOpen) this.close();
-      else this.open();
+      ytController.toggle();
     },
     getCurrentTitle() {
       if (!hasActiveMedia) return '';
@@ -1135,15 +1170,9 @@
     }
   };
 
-  // Expose for renderer.js
   window.YtPanel = YtPanel;
 
-  window.FloatingPanels?.register(PANEL_ID, {
-    open: () => openPanelInternal(),
-    close: () => closePanelInternal(),
-    getElement: () => panel,
-    transitionMs: 220
-  });
+  ytController.ensureFab?.();
 
   // Expose control helpers
   window.ytPlayPause = ytPlayPause;
