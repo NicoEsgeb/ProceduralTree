@@ -503,17 +503,24 @@
 
   function initYouTubePlayer() {
     loadYouTubeIFrameAPI().then(() => {
+      const isFileOrigin = location.protocol === 'file:';
+      const playerVars = {
+        controls: 1,
+        rel: 0,
+        modestbranding: 1,
+        playsinline: 1,
+        enablejsapi: 1
+      };
+      // Only send a web origin that YouTube accepts (http/https). Never send file://
+      if (!isFileOrigin && (location.protocol === 'https:' || location.protocol === 'http:')) {
+        playerVars.origin = location.origin;
+      }
+
       player = new YT.Player('ytp-iframe', {
         width: '100%',
         height: '100%',
-        playerVars: {
-          controls: 1,
-          rel: 0,
-          modestbranding: 1,
-          playsinline: 1,
-          enablejsapi: 1,
-          origin: window.location.origin
-        },
+        host: 'https://www.youtube-nocookie.com',
+        playerVars,
         events: {
           onReady: onPlayerReady,
           onStateChange: onPlayerStateChange,
