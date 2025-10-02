@@ -24,6 +24,8 @@
       "yt-panel.css",
       "timer-panel.js",
       "timer-panel.css",
+      "cards-panel.js",
+      "id-card.css",
       "styles.css",
       "panels.css",
       "auth-panel.js",

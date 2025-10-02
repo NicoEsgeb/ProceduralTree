@@ -353,4 +353,15 @@ body.cozy-theme .panel-shell {
       color: var(--label-color);
       border: 1px solid var(--input-border-color);
     }
+
+    
+/* Cards panel */
+#cards-panel .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
+    padding: 12px;
+  }
+  #cards-panel .cards-empty { padding: 12px; }
+  #cards-fab { background: linear-gradient(140deg, var(--ytp-accent), var(--ytp-accent-2)); }
     
