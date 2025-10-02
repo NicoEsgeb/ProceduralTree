@@ -5,6 +5,7 @@
 
 (function() {
   const TODO_STORAGE_KEY = 'studyTimer.todos';
+  const TITLE_STORAGE_KEY = 'studyTimer.sessionTitle';
   const PANEL_ID = 'study-timer';
   const CYCLE_TAGLINE = '30 min learn • 5 min recall • 10 min break';
   const PHASES = [
@@ -38,6 +39,7 @@
   let startBtn, skipBtn, resetBtn, closeBtn;
   let countdownEl, phaseTitleEl, phaseSubtitleEl, phaseBadgeEl, phaseMetaEl, progressBarEl, cycleEl;
   let todoForm, todoInput, todoListEl, emptyStateEl;
+  let sessionTitleInput;
 
   let todos = [];
   let intervalId = null;
@@ -73,6 +75,11 @@
             <div class="timer-progress-track" role="presentation">
               <div class="timer-progress-bar" id="timer-progress-bar"></div>
             </div>
+            <div class="timer-session-row">
+              <input id="timer-session-title" type="text" maxlength="80"
+                     placeholder="Name this session (e.g., 'CNF practice')"
+                     aria-label="Study session title" />
+            </div>
             <div class="timer-controls">
               <button id="timer-start" type="button">Start</button>
               <button id="timer-skip" type="button" class="secondary">Skip Phase</button>
@@ -101,6 +108,7 @@
 
     cacheElements();
     wireEvents();
+    hydrateSessionTitle();
     hydrateTodos();
     buildCycle();
     updateTimerUI();
@@ -123,6 +131,7 @@
     todoInput = panel.querySelector('#timer-todo-input');
     todoListEl = panel.querySelector('#timer-todo-list');
     emptyStateEl = panel.querySelector('#timer-empty');
+    sessionTitleInput = panel.querySelector('#timer-session-title');
   }
 
   function wireEvents() {
@@ -165,7 +174,16 @@
       removeTodo(id);
     });
 
+    sessionTitleInput?.addEventListener('input', handleSessionTitleInput);
+
     document.addEventListener('keydown', handleGlobalKey, { passive: true });
+  }
+
+  function handleSessionTitleInput() {
+    const value = sessionTitleInput?.value ?? '';
+    persistSessionTitle(value);
+    sessionTitleInput?.classList.remove('needs-title');
+    refreshStartGuard();
   }
 
   function handleGlobalKey(event) {
@@ -218,6 +236,13 @@
 
   function startTimer() {
     if (isRunning) return;
+    if (requiresSessionTitle()) {
+      sessionTitleInput?.focus();
+      sessionTitleInput?.classList.add('needs-title');
+      refreshStartGuard();
+      return;
+    }
+
     isRunning = true;
     if (intervalId) clearInterval(intervalId);
     intervalId = window.setInterval(tick, 1000);
@@ -275,8 +300,14 @@
 
     startBtn.textContent = isRunning ? 'Pause' : 'Start';
     startBtn.setAttribute('aria-pressed', isRunning ? 'true' : 'false');
+    refreshStartGuard();
 
     updateCycleState();
+  }
+
+  function refreshStartGuard() {
+    if (!startBtn) return;
+    startBtn.disabled = !!requiresSessionTitle();
   }
 
   function minutesFor(seconds) {
@@ -467,8 +498,42 @@
         phase: phaseMap[current.id] || current.label || 'Focus',
         remainingMs: Math.max(0, remainingSeconds * 1000)
       };
+    },
+    getSessionTitle() {
+      return readSessionTitle();
     }
   };
+
+  function hydrateSessionTitle() {
+    if (!sessionTitleInput) return;
+    try {
+      const stored = localStorage.getItem(TITLE_STORAGE_KEY);
+      if (typeof stored === 'string') {
+        sessionTitleInput.value = stored;
+      }
+    } catch (_err) {
+      // ignore
+    }
+    sessionTitleInput.classList.remove('needs-title');
+    refreshStartGuard();
+  }
+
+  function persistSessionTitle(value) {
+    try {
+      localStorage.setItem(TITLE_STORAGE_KEY, value);
+    } catch (_err) {
+      // ignore persistence issues
+    }
+  }
+
+  function readSessionTitle() {
+    return (sessionTitleInput?.value || '').trim();
+  }
+
+  function requiresSessionTitle() {
+    const phase = PHASES[currentPhaseIndex];
+    return !isRunning && phase?.id === 'learn' && remainingSeconds === phase.duration && !readSessionTitle();
+  }
 
   window.TimerPanel = TimerPanel;
   window.Timer = Timer;

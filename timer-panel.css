@@ -120,7 +120,14 @@
     background: linear-gradient(90deg, rgba(45,130,255,0.9), rgba(95,189,255,0.9));
     transition: width 220ms ease;
   }
-  
+
+  #timer-panel .timer-session-row { margin-top: 10px; }
+  #timer-session-title { width: 100%; }
+  #timer-session-title.needs-title {
+    border-color: rgba(255, 80, 80, 0.6);
+    box-shadow: 0 0 0 3px rgba(255, 80, 80, 0.2);
+  }
+
   .timer-controls {
     display: flex;
     gap: 12px;
