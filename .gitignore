@@ -16,3 +16,4 @@ dist/
 *.asar
 target/
 .DS_Store
+google-oauth.json

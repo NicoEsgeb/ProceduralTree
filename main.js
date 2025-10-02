@@ -361,7 +361,7 @@ ipcMain.handle('google:login', async () => {
   try {
     const cfgPath = path.join(__dirname, 'google-oauth.json');
     const cfgRaw = await fs.readFile(cfgPath, 'utf8');
-    const { client_id } = JSON.parse(cfgRaw || '{}');
+    const { client_id, client_secret } = JSON.parse(cfgRaw || '{}');
     if (!client_id) return { ok: false, error: 'missing-client-id' };
 
     const codeVerifier = base64url(crypto.randomBytes(32));
@@ -389,16 +389,18 @@ ipcMain.handle('google:login', async () => {
     if (error) return { ok: false, error };
     if (!code || returnedState !== state) return { ok: false, error: 'state-mismatch' };
 
+    const body = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      client_id,
+      redirect_uri: redirectUri,
+      code_verifier: codeVerifier
+    });
+    if (client_secret) body.set('client_secret', client_secret);
     const tokenRes = await nodeFetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code,
-        client_id,
-        redirect_uri: redirectUri,
-        code_verifier: codeVerifier
-      }).toString()
+      body: body.toString()
     });
 
     const tokenText = await tokenRes.text();
