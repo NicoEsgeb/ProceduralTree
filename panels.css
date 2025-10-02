@@ -15,6 +15,23 @@
     --ytp-radius: 12px;
     --ytp-shadow: 0 12px 32px rgba(0,0,0,0.45);
   }
+
+  /* Cozy LIGHT – shared shell look for all panels */
+body.cozy-theme .panel-shell {
+    background: rgba(255, 255, 255, 0.88);
+    color: var(--cozy-ink);
+    border-left: 1px solid rgba(59, 46, 42, 0.12);
+    border-radius: 24px 0 0 24px;
+    box-shadow: 0 24px 48px rgba(19, 10, 22, 0.38);
+    background-image:
+      linear-gradient(180deg, rgba(255,255,255,0.64), rgba(255,255,255,0.48)),
+      radial-gradient(ellipse at top right, rgba(154,209,212,0.22), rgba(255,255,255,0) 62%),
+      radial-gradient(ellipse at bottom left, rgba(196,154,204,0.18), rgba(255,255,255,0) 60%),
+      var(--cozy-paper);
+    overflow: hidden;    /* clips children to the rounded corners */
+    isolation: isolate;  /* keeps inner shadows/filters clean */
+  }
+  
   
   .panel-shell {
     position: fixed;
