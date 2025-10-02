@@ -2224,3 +2224,55 @@ window.TimerPanel?.ensureFab?.();
   });
   // On completion we do nothing here yet — later you can snapshot into a card.
 })();
+
+// -- Card snapshot: build a PNG of the current finished tree and announce it --
+(function(){
+  function dataUrlFromCurrentFrame(targetW = 300, targetH = 400) {
+    try {
+      // Ensure the finished single tree + background are visible on the live canvas
+      if (typeof drawCompletedSingleTree === 'function') {
+        drawCompletedSingleTree();
+      }
+
+      const out = document.createElement('canvas');
+      out.width = targetW;
+      out.height = targetH;
+      const octx = out.getContext('2d');
+
+      // Draw a scaled copy of the live canvas (composited frame)
+      // NOTE: 'canvas' here is the live tree canvas in renderer.js
+      if (canvas && canvas.width && canvas.height) {
+        octx.drawImage(canvas, 0, 0, out.width, out.height);
+      } else {
+        return null;
+      }
+      return out.toDataURL('image/png');
+    } catch (e) {
+      console.warn('Card snapshot failed', e);
+      return null;
+    }
+  }
+
+  function makeId() {
+    return 'card_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+  }
+
+  window.addEventListener('study:focus-complete', (e) => {
+    const title = (e && e.detail && e.detail.title) ? String(e.detail.title) : 'Untitled Session';
+
+    const png = dataUrlFromCurrentFrame(300, 400); // matches your card size
+    if (!png) return;
+
+    const payload = {
+      id: makeId(),
+      title,
+      png,                        // <- this becomes the <img class="pixel-avatar"> src
+      seed: (window.clickTree?.settings?.seed ?? ''),
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      window.dispatchEvent(new CustomEvent('cards:new', { detail: payload }));
+    } catch (_) {}
+  });
+})();
