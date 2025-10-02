@@ -51,6 +51,15 @@ const THEME_DEFINITIONS = {
   }
 };
 
+const DEV_MODE_KEY = 'studyTimer.devMode';
+function isDevMode() {
+  try { return localStorage.getItem(DEV_MODE_KEY) === '1'; } catch (_) { return false; }
+}
+function setDevMode(enabled) {
+  try { localStorage.setItem(DEV_MODE_KEY, enabled ? '1' : '0'); } catch (_) {}
+  try { window.dispatchEvent(new CustomEvent('devmode:change', { detail: { enabled } })); } catch (_) {}
+}
+
 let activeThemeName = 'classic';
 let activeThemeMode = 'dark';
 
@@ -71,6 +80,7 @@ const controls = {
   gradientEnd: document.querySelector('#gradient-end-input'),
   seed: document.querySelector('#seed-input'),
   autoSeed: document.querySelector('#auto-seed-input'),
+  devMode: document.querySelector('#dev-mode-input'),
   forestMode: document.querySelector('#forest-mode-input'),
   solidGroup: document.querySelector('#solid-color-group'),
   gradientGroups: document.querySelectorAll('.gradient-group'),
@@ -1906,6 +1916,11 @@ controls.seed.addEventListener('change', () => {
 controls.autoSeed.addEventListener('change', () => {
   autoRandomSeed = controls.autoSeed.checked;
 });
+
+if (controls.devMode) {
+  controls.devMode.checked = isDevMode();
+  controls.devMode.addEventListener('change', () => setDevMode(controls.devMode.checked));
+}
 
 controls.forestMode.addEventListener('change', () => {
   forestMode = controls.forestMode.checked;

@@ -8,6 +8,11 @@
   const TITLE_STORAGE_KEY = 'studyTimer.sessionTitle';
   const PANEL_ID = 'study-timer';
   const CYCLE_TAGLINE = '30 min learn • 5 min recall • 10 min break';
+  const DEV_MODE_KEY = 'studyTimer.devMode';
+  const DEV_SECONDS = 5;
+  function isDevMode() {
+    try { return localStorage.getItem(DEV_MODE_KEY) === '1'; } catch (_) { return false; }
+  }
   const PHASES = [
     {
       id: 'learn',
@@ -34,6 +39,21 @@
       duration: 10 * 60
     }
   ];
+
+  function applyDevDurations() {
+    const dev = isDevMode();
+    PHASES.forEach((p) => {
+      if (dev) {
+        p.duration = DEV_SECONDS; // 5s for focus/recall/break while testing
+      } else {
+        // restore intended defaults
+        if (p.id === 'learn')  p.duration = 30 * 60;
+        if (p.id === 'recall') p.duration = 5 * 60;
+        if (p.id === 'break')  p.duration = 10 * 60;
+      }
+    });
+  }
+  applyDevDurations();
 
   let panel;
   let startBtn, skipBtn, resetBtn, closeBtn;
@@ -494,6 +514,16 @@
       }
     },
     transitionMs: 220
+  });
+
+  window.addEventListener('devmode:change', () => {
+    const wasRunning = isRunning;
+    pauseTimer();
+    applyDevDurations();
+    currentPhaseIndex = 0;
+    remainingSeconds = PHASES[0].duration;
+    updateTimerUI();
+    if (wasRunning) startTimer();
   });
 
   const TimerPanel = {
