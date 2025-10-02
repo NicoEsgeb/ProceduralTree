@@ -62,6 +62,15 @@ function friendlyAuthErrorMessage(error, supabaseError) {
   if (/network|connection|fetch/i.test(raw)) {
     return "We couldn't reach the sync service. Please check your connection and try again.";
   }
+  if (/redirect_uri_mismatch/i.test(raw)) {
+    return 'Your OAuth client is not a Desktop app or the redirect doesn’t match. Create an OAuth "Desktop app" client in Google Cloud and paste its Client ID into google-oauth.json.';
+  }
+  if (/invalid_client/i.test(raw)) {
+    return 'Invalid Google client ID. Double-check google-oauth.json.';
+  }
+  if (/invalid_grant/i.test(raw)) {
+    return 'Google rejected the one-time code (often code_verifier mismatch or reusing an old code). Try sign-in again.';
+  }
   return "We couldn't finish that request. Please try again.";
 }
 
@@ -274,7 +283,10 @@ function render(state) {
   if (errorEl) {
     const friendly = friendlyAuthErrorMessage(state.lastError, state.supabaseError);
     if (friendly) {
-      errorEl.textContent = friendly;
+      const relevantError = state.lastError || state.supabaseError;
+      const raw = relevantError?.message;
+      const safeRaw = raw ? raw.replace(/[<>&]/g, (s) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[s])) : '';
+      errorEl.innerHTML = friendly + (raw ? `<div style="opacity:.7;font-size:12px;margin-top:6px">Details: ${safeRaw}</div>` : '');
       errorEl.removeAttribute('hidden');
       if (state.lastError && state.lastError !== state.supabaseError) {
         console.warn('Account action failed', state.lastError);

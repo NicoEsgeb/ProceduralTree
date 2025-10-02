@@ -400,9 +400,21 @@ ipcMain.handle('google:login', async () => {
         code_verifier: codeVerifier
       }).toString()
     });
-    const tokenJson = await tokenRes.json();
+
+    const tokenText = await tokenRes.text();
+    let tokenJson = null;
+    try { tokenJson = JSON.parse(tokenText); } catch {}
+
     if (!tokenRes.ok) {
-      return { ok: false, error: tokenJson?.error || 'token-exchange-failed' };
+      const reason =
+        (tokenJson && (tokenJson.error_description || tokenJson.error)) ||
+        tokenRes.statusText ||
+        'token-exchange-failed';
+      console.error('[Google OAuth] Token exchange failed', {
+        status: tokenRes.status,
+        body: tokenText
+      });
+      return { ok: false, error: reason };
     }
 
     const idToken = tokenJson.id_token;
@@ -414,6 +426,7 @@ ipcMain.handle('google:login', async () => {
     };
     if (!user.email) return { ok: false, error: 'no-email-in-idtoken' };
 
+    console.log('[Google OAuth] Login OK:', user);
     return { ok: true, user };
   } catch (e) {
     return { ok: false, error: e?.message || 'google-login-failed' };
