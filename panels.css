@@ -291,3 +291,66 @@ body.cozy-theme .panel-shell {
     color: #aab4c2;
     font-size: 12px;
   }
+
+/* --- Account panel: inherit shell look + cozy fonts + dark inversion --- */
+.account-panel.panel-shell {
+      background: var(--panel-background);
+      color: var(--panel-text-color);
+      border-left: 1px solid var(--panel-border-color);
+      border-radius: var(--panel-radius, 24px 0 0 24px);
+      overflow: hidden; /* clip inner corners like the other panels */
+    }
+    
+    .account-topbar {
+      border-bottom: 1px solid var(--panel-border-color);
+    }
+    
+    .account-main { background: transparent; }
+    
+    /* Cards & blocks follow theme variables (light ↔ dark) */
+    .account-card,
+    .account-auth,
+    .account-details {
+      background: var(--panel-background);
+      color: var(--panel-text-color);
+      border: 1px solid var(--panel-border-color);
+      box-shadow: var(--panel-secondary-shadow, none);
+    }
+    
+    /* Cozy font mapping (same vibe as Timer/YT) */
+    body.cozy-theme .account-title,
+    body.cozy-theme .account-heading,
+    body.cozy-theme .account-sync-pill {
+      font-family: 'Patrick Hand','DM Sans','Segoe UI',sans-serif;
+      letter-spacing: .04em;
+    }
+    body.cozy-theme .account-subheading,
+    body.cozy-theme .account-email,
+    body.cozy-theme .account-meta,
+    body.cozy-theme .account-footnote {
+      font-family: 'DM Sans','Segoe UI',sans-serif;
+    }
+    
+    /* Buttons pick up theme tokens (invert in dark automatically) */
+    .account-primary-btn {
+      background: var(--button-background);
+      color: var(--button-text-color);
+      border: var(--button-border, 1px solid transparent);
+      box-shadow: var(--button-shadow, none);
+    }
+    .account-secondary-btn,
+    .account-tertiary-btn {
+      background: var(--input-background);
+      color: var(--input-text-color);
+      border: 1px solid var(--input-border-color);
+      box-shadow: var(--input-shadow, none);
+    }
+    
+    .account-close { color: var(--label-color); }
+    .account-pill,
+    .account-sync-pill {
+      background: var(--input-background);
+      color: var(--label-color);
+      border: 1px solid var(--input-border-color);
+    }
+    

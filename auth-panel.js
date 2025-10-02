@@ -87,17 +87,17 @@ function ensurePanel() {
 
   panel = document.createElement('aside');
   panel.id = PANEL_ID;
-  panel.className = 'account-panel';
+  panel.className = 'panel-shell account-panel';
   panel.setAttribute('aria-hidden', 'true');
   panel.innerHTML = `
-    <header class="account-topbar">
+    <header class="panel-topbar account-topbar">
       <div class="account-title">
         <span class="account-emblem">🌿</span>
         <span>Account</span>
       </div>
       <button id="account-close" class="account-close" type="button" aria-label="Close account panel">✕</button>
     </header>
-    <main class="account-main">
+    <main class="panel-content account-main">
       <section class="account-card" id="account-signed-out">
         <h3 class="account-heading">Stay in sync</h3>
         <p class="account-subheading">Save your cozy presets to the cloud and bring them to every ClickTree session.</p>
