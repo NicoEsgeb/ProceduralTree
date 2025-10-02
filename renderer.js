@@ -2157,3 +2157,55 @@ try {
 
 window.YtPanel?.ensureFab?.();
 window.TimerPanel?.ensureFab?.();
+
+// === Study Timer integration: auto-grow a centered tree during Focus ===
+(function(){
+  // Choose the visual center in canvas UV space (0..1). Adjust if you prefer.
+  const CENTER_UV = { u: 0.5, v: 0.5, space: 'canvas' };
+  const FPS = 60;         // rAF target; good enough for pacing
+  const FRAME_PER_DEPTH = 100; // each depth layer uses 0..100 "frames"
+
+  function spawnStudyTree(durationSec, title) {
+    if (!Number.isFinite(durationSec) || durationSec <= 1) return;
+
+    // Optional: randomize seed so each study tree is unique
+    try { setSeedValue(randomInt(1, 999_999_999), { refresh: true, redraw: false }); } catch(_){ }
+
+    // In single-tree mode, clear the previous live drawing
+    if (!forestMode) {
+      completedSingleTree = null;
+      growingTrees = [];
+      tree.clearCanvas();
+    }
+
+    // Convert center UV to canvas XY and plant
+    const spawn = uvToCanvasXY(CENTER_UV);
+    drawTreeAt(spawn.x, spawn.y, { uv: CENTER_UV });
+
+    // Calibrate growth so the whole tree finishes exactly in durationSec.
+    // Total time ≈ (depth * FRAME_PER_DEPTH) / (growthSpeed * FPS)
+    // => growthSpeed = (depth * FRAME_PER_DEPTH) / (FPS * durationSec)
+    const t = growingTrees[growingTrees.length - 1];
+    if (t) {
+      const targetDepth = t.depth || settings.depth || 8;
+      t.growthSpeed = (targetDepth * FRAME_PER_DEPTH) / (FPS * durationSec);
+    }
+
+    startMasterAnimation();
+  }
+
+  // Start/resume from timer
+  window.addEventListener('study:focus-start', (e) => {
+    const { durationSec, title } = e.detail || {};
+    spawnStudyTree(durationSec, title);
+  });
+  window.addEventListener('study:focus-resume', (e) => {
+    // Keep growing with whatever speed was set; just ensure animation is running
+    startMasterAnimation();
+  });
+  window.addEventListener('study:focus-pause', () => {
+    // Pause growth by stopping the animation loop (state is preserved)
+    if (masterAnimationId) { cancelAnimationFrame(masterAnimationId); masterAnimationId = null; }
+  });
+  // On completion we do nothing here yet — later you can snapshot into a card.
+})();

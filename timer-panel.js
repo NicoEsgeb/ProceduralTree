@@ -234,6 +234,10 @@
     else startTimer();
   }
 
+  function emitTimerEvent(name, detail = {}) {
+    try { window.dispatchEvent(new CustomEvent(name, { detail })); } catch (_) {}
+  }
+
   function startTimer() {
     if (isRunning) return;
     if (requiresSessionTitle()) {
@@ -246,6 +250,15 @@
     isRunning = true;
     if (intervalId) clearInterval(intervalId);
     intervalId = window.setInterval(tick, 1000);
+
+    // Notify listeners when a Focus (learn) session actually starts/resumes
+    const phase = PHASES[currentPhaseIndex];
+    if (phase?.id === 'learn') {
+      const title = readSessionTitle();
+      const isResume = remainingSeconds < phase.duration;
+      const evtName = isResume ? 'study:focus-resume' : 'study:focus-start';
+      emitTimerEvent(evtName, { durationSec: remainingSeconds, title });
+    }
     updateTimerUI();
   }
 
@@ -255,6 +268,11 @@
     if (intervalId) {
       clearInterval(intervalId);
       intervalId = null;
+    }
+    // Pause notification (only relevant to Focus phase)
+    const phase = PHASES[currentPhaseIndex];
+    if (phase?.id === 'learn') {
+      emitTimerEvent('study:focus-pause', { remainingSec: remainingSeconds, title: readSessionTitle() });
     }
     updateTimerUI();
   }
@@ -270,10 +288,16 @@
 
   function advancePhase(keepRunning) {
     const resume = keepRunning === true;
+    const prev = PHASES[currentPhaseIndex];
     currentPhaseIndex = (currentPhaseIndex + 1) % PHASES.length;
     remainingSeconds = PHASES[currentPhaseIndex].duration;
     updateTimerUI();
     if (!resume) pauseTimer();
+
+    // If we just left Focus, announce completion
+    if (prev?.id === 'learn') {
+      emitTimerEvent('study:focus-complete', { title: readSessionTitle() });
+    }
   }
 
   function tick() {
