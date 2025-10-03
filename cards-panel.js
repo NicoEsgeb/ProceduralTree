@@ -107,8 +107,14 @@
         const title = escapeHtml(card.title||'');
         const png = escapeHtml(card.png||'');
         const selected = (id === selectedId) ? ' selected' : '';
-        const img = png ? `<img src="${png}" alt="${title} thumbnail" loading="lazy" />` : '';
-        return `<button class="card-thumb${selected}" role="listitem" data-id="${id}" title="${title}" aria-selected="${selected ? 'true' : 'false'}">${img}</button>`;
+        return `
+      <button class="card-thumb${selected}" role="listitem"
+              data-id="${id}" title="${title}"
+              aria-selected="${selected ? 'true' : 'false'}">
+        ${png ? `<img class="thumb-img" src="${png}" alt="${title} thumbnail" loading="lazy">` : ''}
+        <img class="thumb-frame" src="./assets/CardImages/3dLayer.png" alt="" aria-hidden="true">
+      </button>
+    `;
       }).join('');
       gridEl.innerHTML = thumbs;
     }
