@@ -22,9 +22,7 @@
               <h2 class="cards-title cozy-hand">Your card</h2>
               <div id="cards-viewer" class="cards-viewer" aria-live="polite"></div>
               <div id="cards-actions" class="cards-actions">
-                <button type="button" data-action="rename" title="Rename card">Rename</button>
                 <button type="button" data-action="export" title="Export PNG">Export</button>
-                <button type="button" data-action="delete" title="Delete card">Delete</button>
               </div>
             </section>
             <section class="cards-gallery">
@@ -185,11 +183,6 @@
               renderViewer();
               break;
             }
-            case 'Delete': {
-              e.preventDefault();
-              handleDelete();
-              break;
-            }
           }
         });
       }
@@ -200,25 +193,13 @@
           const btn = e.target.closest('button[data-action]');
           if (!btn) return;
           const action = btn.getAttribute('data-action');
-          if (action === 'rename') handleRename();
-          else if (action === 'export') handleExport();
-          else if (action === 'delete') handleDelete();
+          if (action === 'export') handleExport();
         });
       }
     }
 
     function getSelectedCard() {
       return cards.find(c => String(c.id) === String(selectedId)) || null;
-    }
-
-    function handleRename() {
-      const card = getSelectedCard();
-      if (!card) return;
-      const next = window.prompt('New name for this card:', card.title || 'Study session');
-      if (next === null) return;
-      card.title = String(next).trim();
-      save(cards);
-      render(); // updates viewer title and keeps selection
     }
 
     function handleExport() {
@@ -231,27 +212,6 @@
       document.body.appendChild(a);
       a.click();
       a.remove();
-    }
-
-    function handleDelete() {
-      const idx = getSelectedIndex();
-      if (idx < 0) return;
-      const card = getSelectedCard();
-      if (!card) return;
-      const ok = window.confirm('Delete this card from your inventory? This cannot be undone.');
-      if (!ok) return;
-      const newList = cards.filter(c => String(c.id) !== String(selectedId));
-      cards = newList;
-      save(cards);
-      // choose a new selection
-      if (cards.length) {
-        const nextIdx = Math.min(idx, cards.length - 1);
-        selectedId = String(cards[nextIdx].id || '');
-      } else {
-        selectedId = '';
-      }
-      saveSelected(selectedId);
-      render();
     }
 
     // Click → select card
