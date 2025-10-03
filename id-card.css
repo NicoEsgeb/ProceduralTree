@@ -1,142 +1,67 @@
-.id-card {
-    position: relative;
-    width: 320px;
-    height: 460px;
-    perspective: 1600px;
-    cursor: grab;
-    user-select: none;
-    transition: transform 0.3s ease;
-  }
-  
-  .id-card:active {
-    cursor: grabbing;
-  }
-  
-  .id-card .rotate-hint {
-    position: absolute;
-    top: -28px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.8);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    pointer-events: none;
-    white-space: nowrap;
-  }
-  
-  .id-card .rotate-hint .arrow {
-    display: inline-block;
-    transform: translateY(-1px);
-  }
-  
-  .id-card .card-inner {
-    position: relative;
-    width: 100%;
-    height: 100%;
+/* ID CARD SECTION */
+#id-card-section{
+    display:flex; justify-content:center; align-items:center;
+    min-height: 55vh; /* was 80vh – tighter */
+    perspective: 1200px;
+    margin-top: -10px; /* pull it up slightly */
+}
+
+.id-card{
+    margin-top: -40px;   /* was -80px */
+    width: 300px; height: 400px;
+    border-radius: 20px;
+    box-shadow: 10px 10px 20px rgba(0,0,0,0.5);
+    text-align:center;
     transform-style: preserve-3d;
-    transition: transform 0.8s ease-out;
-  }
-  
-  .id-card.flipped .card-inner {
-    transform: rotateY(180deg);
-  }
-  
-  .id-card .card-front,
-  .id-card .card-back {
-    position: absolute;
-    inset: 0;
-    border-radius: 24px;
-    backface-visibility: hidden;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+    transition: transform 0.2s ease-out;
+    animation: float 3s ease-in-out infinite alternate;
+}
+
+/* disable selection */
+.id-card, .id-card *{ user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; }
+
+.card-inner{ position:relative; width:100%; height:100%; transform-style: preserve-3d; transition: transform 0.1s; }
+
+.card-front, .card-back{
+    position:absolute; inset:0; width:100%; height:100%;
     background: url('./assets/CardImages/card-texture.png') no-repeat center/cover;
-  }
-  
-  .id-card .card-front::before,
-  .id-card .card-back::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(160deg, rgba(255, 255, 255, 0.15), rgba(0, 0, 0, 0.45));
-    pointer-events: none;
-  }
-  
-  .id-card .card-front {
-    z-index: 2;
-  }
-  
-  .id-card .card-back {
-    transform: rotateY(180deg);
-    text-align: center;
-    color: #f4f4f4;
-  }
-  
-  .id-card .character-container {
-    position: relative;
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 26px 26px 8px;
-  }
-  
-  .id-card .character-layer,
-  .id-card .front-layer,
-  .id-card .back-layer {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .id-card .pixel-avatar {
-    max-width: 70%;
-    image-rendering: pixelated;
-    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.45));
-  }
-  
-  .id-card .front-layer1,
-  .id-card .back-layer1 {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.9;
-  }
-  
-  .id-card .front-letters,
-  .id-card .back-letters {
-    position: relative;
-    padding: 18px 24px 28px;
-    color: #fff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-  }
-  
-  .id-card .front-letters .name {
-    font-size: 24px;
-    letter-spacing: 0.8px;
-  }
-  
-  .id-card .info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
-  
-  @media (max-width: 720px) {
-    .id-card {
-      width: min(280px, 80vw);
-      height: 400px;
-    }
-  
-    .id-card .rotate-hint {
-      font-size: 12px;
-    }
-  }
+    border-radius:20px; backface-visibility:hidden; transform-style:preserve-3d;
+    display:flex; flex-direction:column; justify-content:center; align-items:center;
+    box-shadow: 5px 5px 15px rgba(255,255,255,0.2);
+}
+
+.character-container{ position:relative; width:100%; transform-style:preserve-3d; margin-bottom: 8px; }
+
+.card-back{ transform: rotateY(180deg); }
+.id-card.flipped .card-inner{ transform: rotateY(180deg); animation: float 20s ease-in-out infinite; }
+
+.character-layer{ position:relative; z-index:2; transform: translateZ(15px); backface-visibility:hidden; }
+.pixel-avatar{ width:200px; height:auto; image-rendering:pixelated; border-radius:10px; box-shadow: 5px 5px 10px rgba(255,255,255,0.2); }
+
+.front-letters{ position:relative; z-index:2; transform: translateZ(20px); backface-visibility:hidden; }
+
+.front-layer{ position:absolute; inset:0; z-index:2; transform: translateZ(25px); backface-visibility:hidden; }
+.front-layer1{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+
+.info{ width:100%; text-align:center; z-index:1; }
+
+.back-letters{ position:relative; z-index:2; transform: translateZ(20px); backface-visibility:hidden; }
+.card-back{ position:relative; }
+.back-layer{ position:absolute; inset:0; z-index:2; transform: translateZ(10px); backface-visibility:hidden; }
+.back-layer1{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+
+@keyframes float{
+    0% { transform: translateY(1px) rotateY(10deg) rotateX(0deg); }
+    50%{ transform: translateY(-8px) rotateY(10deg) rotateX(1deg); }
+    100%{ transform: translateY(1px) rotateY(2deg) rotateX(0deg); }
+}
+
+/* rotate hint */
+.rotate-hint{
+    position:absolute; top:10px; left:50%; transform:translateX(-50%);
+    text-align:center; font-size:13px; color:rgba(255,255,255,0.9);
+    opacity:0; animation: hintFadeInOut 6s ease-in-out infinite; pointer-events:none;
+}
+.rotate-hint .arrow{ display:block; font-size:22px; margin-bottom:3px; animation: arrowBounce 2s ease-in-out infinite; }
+@keyframes hintFadeInOut{ 0%,20%,80%,100%{opacity:0;} 40%,60%{opacity:1;} }
+@keyframes arrowBounce{ 0%{transform:translateY(0);} 50%{transform:translateY(-5px);} 100%{transform:translateY(0);} }
