@@ -4,6 +4,7 @@
     const LS_SELECTED = 'CardInventory.selectedId.v1';
   
     let panel, gridEl, emptyEl, closeBtn, viewerEl;
+    let navWired = false;
   
     function ensurePanel(){
       let el = document.getElementById('cards-panel');
@@ -141,80 +142,96 @@
       return Array.from(gridEl?.querySelectorAll('.card-thumb') || []);
     }
     function getSelectedIndex() {
-      const thumbs = getThumbs();
-      return thumbs.findIndex(el => (el.getAttribute('data-id') || '') === String(selectedId));
+      const id = String(selectedId || '');
+      return getThumbs().findIndex(el => (el.getAttribute('data-id') || '') === id);
     }
-    function selectByIndex(nextIdx) {
+    function selectByIndex(nextIdx, { focus = true } = {}) {
       const thumbs = getThumbs();
       if (!thumbs.length) return;
       const idx = Math.max(0, Math.min(nextIdx, thumbs.length - 1));
       const next = thumbs[idx];
       if (!next) return;
+
       selectedId = next.getAttribute('data-id') || '';
       saveSelected(selectedId);
-      thumbs.forEach(el => el.classList.toggle('selected', el.getAttribute('data-id') === selectedId));
-      renderViewer();
-      next.focus({ preventScroll: true });
-      gridEl.querySelectorAll('.card-thumb').forEach(el => {
-        el.setAttribute('aria-selected', el.getAttribute('data-id') === selectedId ? 'true' : 'false');
+
+      // Update selection classes + ARIA quickly
+      thumbs.forEach(el => {
+        const isSel = (el.getAttribute('data-id') || '') === selectedId;
+        el.classList.toggle('selected', isSel);
+        el.setAttribute('aria-selected', isSel ? 'true' : 'false');
       });
+
+      renderViewer();
+      if (focus) next.focus({ preventScroll: true });
       scrollSelectedIntoView();
     }
     function getColumnCount() {
-      const items = getThumbs();
-      if (items.length <= 1) return 1;
-      const top0 = items[0].offsetTop;
-      let cols = 1;
-      for (let i = 1; i < items.length; i++) {
-        if (items[i].offsetTop !== top0) break;
-        cols++;
-      }
-      return cols;
+      if (!gridEl) return 1;
+      const cs = getComputedStyle(gridEl);
+      const cols = (cs.gridTemplateColumns || '').split(' ').filter(Boolean).length;
+      return Math.max(1, cols || 1);
     }
 
-    function ensureNavWiring(){
-      if (gridEl && !gridEl.hasAttribute('tabindex')) {
-        gridEl.setAttribute('tabindex', '0');
-      }
-      if (panel && !panel.dataset.cardsNavWired) {
-        panel.dataset.cardsNavWired = 'true';
-        panel.addEventListener('keydown', (e) => {
-          const thumbs = getThumbs();
-          if (!thumbs.length) return;
+    function ensureNavWiring() {
+      if (navWired || !panel) return;
+      navWired = true;
 
-          const idx = getSelectedIndex();
-          const cols = Math.max(1, getColumnCount());
+      // Keyboard navigation inside the panel
+      panel.addEventListener('keydown', (e) => {
+        if (panel.getAttribute('aria-hidden') === 'true') return;
 
-          switch (e.key) {
-            case 'ArrowRight': e.preventDefault(); selectByIndex(idx + 1); break;
-            case 'ArrowLeft':  e.preventDefault(); selectByIndex(idx - 1); break;
-            case 'ArrowDown':  e.preventDefault(); selectByIndex(idx + cols); break;
-            case 'ArrowUp':    e.preventDefault(); selectByIndex(idx - cols); break;
-            case 'Home':       e.preventDefault(); selectByIndex(0); break;
-            case 'End':        e.preventDefault(); selectByIndex(thumbs.length - 1); break;
-            case 'e':
-            case 'E':
-              e.preventDefault();
-              handleExport();
-              break;
-            case 'Enter':
-            case ' ': { // Space
-              // simply ensure the viewer shows the current selection
-              e.preventDefault();
-              renderViewer();
-              break;
-            }
+        const thumbs = getThumbs();
+        if (!thumbs.length) return;
+
+        const idx = getSelectedIndex();
+        const cols = getColumnCount();
+
+        // Prevent page scroll when we use arrows/space here
+        const block = () => { e.preventDefault(); e.stopPropagation(); };
+
+        switch (e.key) {
+          case 'ArrowRight': block(); selectByIndex(idx + 1); break;
+          case 'ArrowLeft':  block(); selectByIndex(idx - 1); break;
+          case 'ArrowDown':  block(); selectByIndex(idx + cols); break;
+          case 'ArrowUp':    block(); selectByIndex(idx - cols); break;
+          case 'Home':       block(); selectByIndex(0); break;
+          case 'End':        block(); selectByIndex(thumbs.length - 1); break;
+          case 'PageDown':   block(); selectByIndex(idx + cols); break;
+          case 'PageUp':     block(); selectByIndex(idx - cols); break;
+          case 'Enter': {
+            // Mimic click on the selected thumb
+            const sel = thumbs[Math.max(0, getSelectedIndex())];
+            if (sel) { block(); sel.click(); }
+            break;
           }
-        });
-      }
-      const actionsEl = panel?.querySelector('#cards-actions');
-      if (actionsEl && !actionsEl.dataset.wired) {
-        actionsEl.dataset.wired = 'true';
-        actionsEl.addEventListener('click', (e) => {
-          const btn = e.target.closest('button[data-action]');
+          case ' ':
+          case 'Spacebar': {
+            // Flip the big card
+            const big = viewerEl?.querySelector('.id-card');
+            if (big) { block(); big.classList.toggle('flipped'); }
+            break;
+          }
+          case 'e':
+          case 'E': {
+            // Export current card
+            block();
+            handleExport?.();
+            break;
+          }
+          default:
+            break;
+        }
+      }, { capture: true });
+
+      // Keep your existing export delegation intact
+      const actions = panel.querySelector('#cards-actions');
+      if (actions && !actions.dataset.wired) {
+        actions.dataset.wired = 'true';
+        actions.addEventListener('click', (ev) => {
+          const btn = ev.target.closest('button[data-action]');
           if (!btn) return;
-          const action = btn.getAttribute('data-action');
-          if (action === 'export') handleExport();
+          if (btn.getAttribute('data-action') === 'export') handleExport();
         });
       }
     }
@@ -282,7 +299,16 @@
       id: PANEL_ID,
       ensurePanel: () => ensurePanel(),
       getElement: () => panel,
-      onOpen: () => { ensurePanel(); panel.classList.add('open'); panel.setAttribute('aria-hidden','false'); render(); },
+      onOpen: () => {
+        ensurePanel();
+        panel.classList.add('open');
+        panel.setAttribute('aria-hidden','false');
+        render();
+        requestAnimationFrame(() => {
+          const sel = gridEl?.querySelector('.card-thumb.selected') || gridEl?.querySelector('.card-thumb');
+          sel?.focus({ preventScroll: true });
+        });
+      },
       onClose: () => { if (!panel) return; panel.classList.remove('open'); panel.setAttribute('aria-hidden','true'); },
       ensureFab: ({ cluster, controller }) => {
         if (!cluster) return;
