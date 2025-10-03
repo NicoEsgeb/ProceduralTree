@@ -2225,27 +2225,58 @@ window.TimerPanel?.ensureFab?.();
   // On completion we do nothing here yet — later you can snapshot into a card.
 })();
 
-// -- Card snapshot: build a PNG of the current finished tree and announce it --
+// -- Card snapshot: build a TRANSPARENT PNG with only the finished tree and announce it --
 (function(){
-  function dataUrlFromCurrentFrame(targetW = 300, targetH = 400) {
+  // Draw the finished tree onto a transparent offscreen canvas, crop its alpha bounds,
+  // then fit+center it into (targetW x targetH) with padding.
+  function makeTransparentTreePNG(targetW = 300, targetH = 400, padding = 20) {
     try {
-      // Ensure the finished single tree + background are visible on the live canvas
-      if (typeof drawCompletedSingleTree === 'function') {
-        drawCompletedSingleTree();
-      }
+      if (!completedSingleTree) return null;
 
+      // 1) Draw only the tree (no background) in stage coordinates.
+      const pr = tree.pixelRatio || 1;
+      const src = document.createElement('canvas');
+      src.width  = Math.max(1, Math.floor(tree.stageWidth  * pr));
+      src.height = Math.max(1, Math.floor(tree.stageHeight * pr));
+      const sctx = src.getContext('2d');
+      sctx.setTransform(pr, 0, 0, pr, 0, 0); // stage coords
+      drawFinishedTree(completedSingleTree, sctx);
+
+      // 2) Find non-transparent bounds (alpha > 0).
+      const img = sctx.getImageData(0, 0, src.width, src.height);
+      const data = img.data;
+      let minX = src.width, minY = src.height, maxX = 0, maxY = 0, found = false;
+      for (let y = 0; y < src.height; y++) {
+        for (let x = 0; x < src.width; x++) {
+          const a = data[(y * src.width + x) * 4 + 3];
+          if (a > 0) {
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+            found = true;
+          }
+        }
+      }
+      if (!found) return null;
+
+      const cw = maxX - minX + 1;
+      const ch = maxY - minY + 1;
+
+      // 3) Fit+center the crop into the card frame.
       const out = document.createElement('canvas');
       out.width = targetW;
       out.height = targetH;
       const octx = out.getContext('2d');
 
-      // Draw a scaled copy of the live canvas (composited frame)
-      // NOTE: 'canvas' here is the live tree canvas in renderer.js
-      if (canvas && canvas.width && canvas.height) {
-        octx.drawImage(canvas, 0, 0, out.width, out.height);
-      } else {
-        return null;
-      }
+      const innerW = Math.max(1, targetW - padding * 2);
+      const innerH = Math.max(1, targetH - padding * 2);
+      const scale = Math.min(innerW / cw, innerH / ch);
+      const dw = cw * scale, dh = ch * scale;
+      const dx = (targetW - dw) * 0.5;
+      const dy = (targetH - dh) * 0.5;
+
+      octx.drawImage(src, minX, minY, cw, ch, dx, dy, dw, dh);
       return out.toDataURL('image/png');
     } catch (e) {
       console.warn('Card snapshot failed', e);
@@ -2257,16 +2288,16 @@ window.TimerPanel?.ensureFab?.();
     return 'card_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
   }
 
+  // Use the transparent snapshot instead of copying the live canvas
   window.addEventListener('study:focus-complete', (e) => {
     const title = (e && e.detail && e.detail.title) ? String(e.detail.title) : 'Untitled Session';
-
-    const png = dataUrlFromCurrentFrame(300, 400); // matches your card size
+    const png = makeTransparentTreePNG(300, 400, 20);
     if (!png) return;
 
     const payload = {
       id: makeId(),
       title,
-      png,                        // <- this becomes the <img class="pixel-avatar"> src
+      png,
       seed: (window.clickTree?.settings?.seed ?? ''),
       createdAt: new Date().toISOString()
     };
