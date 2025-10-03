@@ -1,8 +1,9 @@
 (function(){
     const PANEL_ID = 'cards';
     const LS_KEY = 'CardInventory.v1';
+    const LS_SELECTED = 'CardInventory.selectedId.v1';
   
-    let panel, gridEl, emptyEl, closeBtn;
+    let panel, gridEl, emptyEl, closeBtn, viewerEl;
   
     function ensurePanel(){
       let el = document.getElementById('cards-panel');
@@ -16,16 +17,24 @@
             <div class="cozy-hand" style="font-size:18px;font-weight:600">Card Collection</div>
             <button id="cards-close" class="account-close" title="Close" aria-label="Close">✕</button>
           </header>
-          <main class="panel-content" style="overflow:auto">
-            <div id="cards-empty" class="cards-empty cozy-hand" style="opacity:.75;padding:12px">No cards yet. Finish a study session to mint your first card.</div>
-            <div id="cards-grid" class="cards-grid"></div>
+          <main class="panel-content cards-layout">
+            <section class="cards-view">
+              <h2 class="cards-title cozy-hand">Your card</h2>
+              <div id="cards-viewer" class="cards-viewer" aria-live="polite"></div>
+            </section>
+            <section class="cards-gallery">
+              <h2 class="cards-title cozy-hand">Your trees</h2>
+              <div id="cards-empty" class="cards-empty cozy-hand">No cards yet. Finish a study session to mint your first card.</div>
+              <div id="cards-grid" class="cards-grid" role="list"></div>
+            </section>
           </main>
         `;
         document.body.appendChild(el);
       }
       panel = el;
-      gridEl = panel.querySelector('#cards-grid');
-      emptyEl = panel.querySelector('#cards-empty');
+      gridEl   = panel.querySelector('#cards-grid');
+      emptyEl  = panel.querySelector('#cards-empty');
+      viewerEl = panel.querySelector('#cards-viewer');
       closeBtn = panel.querySelector('#cards-close');
       closeBtn.addEventListener('click', () => CardsPanel.close());
       panel.addEventListener('keydown', (e) => { if (e.key === 'Escape') CardsPanel.close(); });
@@ -35,17 +44,24 @@
     function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
     function load(){ try { return JSON.parse(localStorage.getItem(LS_KEY))||[]; } catch(_) { return []; } }
     function save(list){ try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch(_) {} }
-  
+    function loadSelected(){ try { return localStorage.getItem(LS_SELECTED)||''; } catch(_) { return ''; } }
+    function saveSelected(id){ try { localStorage.setItem(LS_SELECTED, id||''); } catch(_) {} }
+
     let cards = load();
-  
+    let selectedId = loadSelected();
+
     function render(){
-      if (!gridEl) return;
+      if (!gridEl || !viewerEl) return;
       emptyEl.style.display = cards.length ? 'none' : 'block';
-      gridEl.innerHTML = cards.map(renderCard).join('');
-      gridEl.querySelectorAll('.id-card').forEach(attachInteractions);
+      if (cards.length && !cards.some(c => String(c.id) === String(selectedId))) {
+        selectedId = String(cards[0].id || '');
+        saveSelected(selectedId);
+      }
+      renderGrid();
+      renderViewer();
     }
-  
-    function renderCard(card){
+
+    function renderBigCard(card){
       const title = escapeHtml(card.title || 'Study Session');
       const png = escapeHtml(card.png || '');
       const when = card.createdAt ? new Date(card.createdAt).toLocaleString() : '';
@@ -80,7 +96,41 @@
         </article>
       `;
     }
-  
+
+    function renderGrid(){
+      const thumbs = cards.map((card) => {
+        const id = escapeHtml(card.id||'');
+        const title = escapeHtml(card.title||'');
+        const png = escapeHtml(card.png||'');
+        const selected = (id === selectedId) ? ' selected' : '';
+        const img = png ? `<img src="${png}" alt="${title} thumbnail" loading="lazy" />` : '';
+        return `<button class="card-thumb${selected}" role="listitem" data-id="${id}" title="${title}">${img}</button>`;
+      }).join('');
+      gridEl.innerHTML = thumbs;
+    }
+
+    function renderViewer(){
+      const card = cards.find(c => String(c.id) === String(selectedId));
+      if (!card) {
+        viewerEl.innerHTML = `<div class="cards-viewer-empty"></div>`;
+        return;
+      }
+      viewerEl.innerHTML = renderBigCard(card);
+      const big = viewerEl.querySelector('.id-card');
+      if (big) attachInteractions(big);
+    }
+
+    // Click → select card
+    document.addEventListener('click', (e) => {
+      const thumb = e.target.closest?.('.card-thumb');
+      if (!thumb || !gridEl?.contains(thumb)) return;
+      selectedId = thumb.getAttribute('data-id') || '';
+      saveSelected(selectedId);
+      // update selection highlight (cheap)
+      gridEl.querySelectorAll('.card-thumb').forEach(el => el.classList.toggle('selected', el.getAttribute('data-id') === selectedId));
+      renderViewer();
+    }, true);
+
     // Per-card drag/flip interactions (same behavior as idCard.js but scoped per element)
     function attachInteractions(card){
       const inner = card.querySelector('.card-inner');
@@ -98,6 +148,8 @@
       if (!payload || !payload.id) return;
       cards.unshift(payload);
       save(cards);
+      selectedId = String(payload.id);
+      saveSelected(selectedId);
       render();
       if (open) CardsPanel.open();
     }
