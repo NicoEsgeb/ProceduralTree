@@ -21,6 +21,11 @@
             <section class="cards-view">
               <h2 class="cards-title cozy-hand">Your card</h2>
               <div id="cards-viewer" class="cards-viewer" aria-live="polite"></div>
+              <div id="cards-actions" class="cards-actions">
+                <button type="button" data-action="rename" title="Rename card">Rename</button>
+                <button type="button" data-action="export" title="Export PNG">Export</button>
+                <button type="button" data-action="delete" title="Delete card">Delete</button>
+              </div>
             </section>
             <section class="cards-gallery">
               <h2 class="cards-title cozy-hand">Your trees</h2>
@@ -38,6 +43,7 @@
       closeBtn = panel.querySelector('#cards-close');
       closeBtn.addEventListener('click', () => CardsPanel.close());
       panel.addEventListener('keydown', (e) => { if (e.key === 'Escape') CardsPanel.close(); });
+      ensureNavWiring();
       return panel;
     }
   
@@ -118,6 +124,134 @@
       viewerEl.innerHTML = renderBigCard(card);
       const big = viewerEl.querySelector('.id-card');
       if (big) attachInteractions(big);
+    }
+
+    // --- Keyboard navigation + actions ---
+    function getThumbs() {
+      return Array.from(gridEl?.querySelectorAll('.card-thumb') || []);
+    }
+    function getSelectedIndex() {
+      const thumbs = getThumbs();
+      return thumbs.findIndex(el => (el.getAttribute('data-id') || '') === String(selectedId));
+    }
+    function selectByIndex(nextIdx) {
+      const thumbs = getThumbs();
+      if (!thumbs.length) return;
+      const idx = Math.max(0, Math.min(nextIdx, thumbs.length - 1));
+      const next = thumbs[idx];
+      if (!next) return;
+      selectedId = next.getAttribute('data-id') || '';
+      saveSelected(selectedId);
+      thumbs.forEach(el => el.classList.toggle('selected', el.getAttribute('data-id') === selectedId));
+      renderViewer();
+      next.focus({ preventScroll: true });
+    }
+    function getColumnCount() {
+      const items = getThumbs();
+      if (items.length <= 1) return 1;
+      const top0 = items[0].offsetTop;
+      let cols = 1;
+      for (let i = 1; i < items.length; i++) {
+        if (items[i].offsetTop !== top0) break;
+        cols++;
+      }
+      return cols;
+    }
+
+    function ensureNavWiring(){
+      if (gridEl && !gridEl.hasAttribute('tabindex')) {
+        gridEl.setAttribute('tabindex', '0');
+      }
+      if (panel && !panel.dataset.cardsNavWired) {
+        panel.dataset.cardsNavWired = 'true';
+        panel.addEventListener('keydown', (e) => {
+          const thumbs = getThumbs();
+          if (!thumbs.length) return;
+
+          const idx = getSelectedIndex();
+          const cols = Math.max(1, getColumnCount());
+
+          switch (e.key) {
+            case 'ArrowRight': e.preventDefault(); selectByIndex(idx + 1); break;
+            case 'ArrowLeft':  e.preventDefault(); selectByIndex(idx - 1); break;
+            case 'ArrowDown':  e.preventDefault(); selectByIndex(idx + cols); break;
+            case 'ArrowUp':    e.preventDefault(); selectByIndex(idx - cols); break;
+            case 'Home':       e.preventDefault(); selectByIndex(0); break;
+            case 'End':        e.preventDefault(); selectByIndex(thumbs.length - 1); break;
+            case 'Enter':
+            case ' ': { // Space
+              // simply ensure the viewer shows the current selection
+              e.preventDefault();
+              renderViewer();
+              break;
+            }
+            case 'Delete': {
+              e.preventDefault();
+              handleDelete();
+              break;
+            }
+          }
+        });
+      }
+      const actionsEl = panel?.querySelector('#cards-actions');
+      if (actionsEl && !actionsEl.dataset.wired) {
+        actionsEl.dataset.wired = 'true';
+        actionsEl.addEventListener('click', (e) => {
+          const btn = e.target.closest('button[data-action]');
+          if (!btn) return;
+          const action = btn.getAttribute('data-action');
+          if (action === 'rename') handleRename();
+          else if (action === 'export') handleExport();
+          else if (action === 'delete') handleDelete();
+        });
+      }
+    }
+
+    function getSelectedCard() {
+      return cards.find(c => String(c.id) === String(selectedId)) || null;
+    }
+
+    function handleRename() {
+      const card = getSelectedCard();
+      if (!card) return;
+      const next = window.prompt('New name for this card:', card.title || 'Study session');
+      if (next === null) return;
+      card.title = String(next).trim();
+      save(cards);
+      render(); // updates viewer title and keeps selection
+    }
+
+    function handleExport() {
+      const card = getSelectedCard();
+      if (!card || !card.png) return;
+      const a = document.createElement('a');
+      a.href = card.png;
+      const safe = (card.title || 'card').replace(/[\\/:*?"<>|]+/g, '_');
+      a.download = `${safe || 'card'}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    function handleDelete() {
+      const idx = getSelectedIndex();
+      if (idx < 0) return;
+      const card = getSelectedCard();
+      if (!card) return;
+      const ok = window.confirm('Delete this card from your inventory? This cannot be undone.');
+      if (!ok) return;
+      const newList = cards.filter(c => String(c.id) !== String(selectedId));
+      cards = newList;
+      save(cards);
+      // choose a new selection
+      if (cards.length) {
+        const nextIdx = Math.min(idx, cards.length - 1);
+        selectedId = String(cards[nextIdx].id || '');
+      } else {
+        selectedId = '';
+      }
+      saveSelected(selectedId);
+      render();
     }
 
     // Click → select card
