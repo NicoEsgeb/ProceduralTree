@@ -108,7 +108,7 @@
         const png = escapeHtml(card.png||'');
         const selected = (id === selectedId) ? ' selected' : '';
         const img = png ? `<img src="${png}" alt="${title} thumbnail" loading="lazy" />` : '';
-        return `<button class="card-thumb${selected}" role="listitem" data-id="${id}" title="${title}">${img}</button>`;
+        return `<button class="card-thumb${selected}" role="listitem" data-id="${id}" title="${title}" aria-selected="${selected ? 'true' : 'false'}">${img}</button>`;
       }).join('');
       gridEl.innerHTML = thumbs;
     }
@@ -122,6 +122,12 @@
       viewerEl.innerHTML = renderBigCard(card);
       const big = viewerEl.querySelector('.id-card');
       if (big) attachInteractions(big);
+    }
+
+    function scrollSelectedIntoView() {
+      const el = gridEl?.querySelector('.card-thumb.selected');
+      if (!el) return;
+      el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
     }
 
     // --- Keyboard navigation + actions ---
@@ -143,6 +149,10 @@
       thumbs.forEach(el => el.classList.toggle('selected', el.getAttribute('data-id') === selectedId));
       renderViewer();
       next.focus({ preventScroll: true });
+      gridEl.querySelectorAll('.card-thumb').forEach(el => {
+        el.setAttribute('aria-selected', el.getAttribute('data-id') === selectedId ? 'true' : 'false');
+      });
+      scrollSelectedIntoView();
     }
     function getColumnCount() {
       const items = getThumbs();
@@ -176,6 +186,11 @@
             case 'ArrowUp':    e.preventDefault(); selectByIndex(idx - cols); break;
             case 'Home':       e.preventDefault(); selectByIndex(0); break;
             case 'End':        e.preventDefault(); selectByIndex(thumbs.length - 1); break;
+            case 'e':
+            case 'E':
+              e.preventDefault();
+              handleExport();
+              break;
             case 'Enter':
             case ' ': { // Space
               // simply ensure the viewer shows the current selection
@@ -223,6 +238,10 @@
       // update selection highlight (cheap)
       gridEl.querySelectorAll('.card-thumb').forEach(el => el.classList.toggle('selected', el.getAttribute('data-id') === selectedId));
       renderViewer();
+      gridEl.querySelectorAll('.card-thumb').forEach(el => {
+        el.setAttribute('aria-selected', el.classList.contains('selected') ? 'true' : 'false');
+      });
+      scrollSelectedIntoView();
     }, true);
 
     // Per-card drag/flip interactions (same behavior as idCard.js but scoped per element)
@@ -245,6 +264,7 @@
       selectedId = String(payload.id);
       saveSelected(selectedId);
       render();
+      setTimeout(scrollSelectedIntoView, 0);
       if (open) CardsPanel.open();
     }
   

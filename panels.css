@@ -354,7 +354,19 @@ body.cozy-theme .panel-shell {
       border: 1px solid var(--input-border-color);
     }
 
-    #cards-panel .cards-layout { display: flex; flex-direction: column; gap: 6px; overflow: auto; }
+    /* Make the main cards layout fill and allow inner section scrolling */
+    #cards-panel .cards-layout {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden; /* stop double scrollbars */
+    }
+    /* Only the gallery section scrolls */
+    #cards-panel .cards-gallery {
+      flex: 1 1 auto;
+      min-height: 0;     /* required for flex children to overflow properly */
+      overflow: auto;
+    }
     #cards-panel .cards-title { text-align: center; margin: 12px 0 6px; font-weight: 700; }
     #cards-panel .cards-viewer { min-height: 340px; display: grid; place-items: center; padding: 10px 12px; }
     #cards-panel .cards-viewer .id-card { margin: 0; }
@@ -388,7 +400,7 @@ body.cozy-theme .panel-shell {
   }
   #cards-panel .card-thumb:focus {
     transform: translateY(-2px);
-    box-shadow: 0 0 0 4px rgba(45,130,255,.55), 0 12px 30px rgba(0,0,0,.55);
+    box-shadow: 0 0 0 4px rgba(45,130,255,0.55), 0 12px 30px rgba(0,0,0,0.55);
   }
   #cards-panel .card-thumb.selected {
     box-shadow: 0 0 0 4px rgba(45,130,255,0.55), 0 12px 30px rgba(0,0,0,0.55);
