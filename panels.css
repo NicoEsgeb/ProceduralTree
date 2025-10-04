@@ -354,6 +354,209 @@ body.cozy-theme .panel-shell {
       border: 1px solid var(--input-border-color);
     }
 
+    /* Cozy signed-out experience */
+    .account-card-cozy {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: clamp(18px, 3vw, 26px);
+      padding: clamp(22px, 4vw, 30px);
+      border-radius: 20px;
+      background: linear-gradient(140deg, rgba(150, 201, 178, 0.22), rgba(130, 176, 189, 0.1) 60%, rgba(108, 121, 156, 0.16)), var(--panel-background);
+      border: 1px solid color-mix(in srgb, var(--panel-border-color) 65%, transparent);
+      box-shadow: var(--panel-secondary-shadow, 0 18px 40px rgba(0, 0, 0, 0.22));
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .account-card-cozy::before {
+      content: '';
+      position: absolute;
+      inset: 12px 16px 24px;
+      background: radial-gradient(circle at 20% 20%, rgba(210, 235, 224, 0.35), transparent 60%);
+      filter: blur(0.5px);
+      opacity: 0.8;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    body.theme-light .account-card-cozy {
+      background: linear-gradient(150deg, rgba(163, 210, 190, 0.4) 0%, rgba(163, 210, 190, 0.12) 55%, rgba(115, 140, 161, 0.18) 100%), var(--panel-background);
+      border-color: color-mix(in srgb, var(--panel-border-color) 45%, rgba(151, 171, 185, 0.38));
+    }
+
+    .account-hero {
+      position: relative;
+      display: grid;
+      gap: clamp(14px, 3vw, 20px);
+    }
+
+    .account-hero-illustration {
+      position: absolute;
+      top: clamp(-44px, -6vw, -28px);
+      right: clamp(-32px, -6vw, -12px);
+      width: clamp(160px, 25vw, 220px);
+      height: clamp(160px, 25vw, 220px);
+      background: radial-gradient(circle at 35% 40%, rgba(197, 235, 221, 0.6) 0%, rgba(144, 174, 205, 0.18) 45%, transparent 70%);
+      filter: blur(0px);
+      pointer-events: none;
+      opacity: 0.85;
+    }
+
+    .account-hero-sparkle {
+      position: absolute;
+      font-size: clamp(20px, 3vw, 28px);
+      opacity: 0.65;
+      color: color-mix(in srgb, var(--panel-text-color) 90%, rgba(230, 240, 255, 0.8));
+      text-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+    }
+
+    .account-hero-sparkle--one { top: 32%; right: 18%; }
+    .account-hero-sparkle--two { top: 54%; right: 4%; font-size: clamp(18px, 2.8vw, 24px); }
+    .account-hero-sparkle--three { top: 12%; right: 36%; font-size: clamp(16px, 2.6vw, 22px); }
+
+    .account-heading {
+      font-size: clamp(20px, 3vw, 26px);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: none;
+    }
+
+    .account-subheading {
+      margin: 0;
+      font-size: clamp(15px, 2.3vw, 17px);
+      line-height: 1.6;
+      color: color-mix(in srgb, var(--panel-text-color) 78%, rgba(255, 255, 255, 0.65));
+    }
+
+    .account-signin-shell {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .account-google-btn {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(31, 43, 55, 0.95), rgba(46, 58, 66, 0.9));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 12px 28px rgba(17, 24, 39, 0.32);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      text-align: left;
+    }
+
+    body.theme-light .account-google-btn {
+      background: linear-gradient(135deg, rgba(226, 242, 238, 0.9), rgba(206, 229, 236, 0.92));
+      border-color: rgba(126, 164, 177, 0.35);
+      color: #1c2f3a;
+      box-shadow: 0 12px 22px rgba(109, 140, 162, 0.35);
+    }
+
+    body.theme-cozy-dark .account-google-btn {
+      background: linear-gradient(140deg, rgba(35, 48, 54, 0.95), rgba(44, 61, 64, 0.9));
+      border-color: rgba(148, 192, 178, 0.28);
+    }
+
+    .account-google-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 34px rgba(17, 24, 39, 0.38);
+    }
+
+    .account-google-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 10px 20px rgba(17, 24, 39, 0.3);
+    }
+
+    .account-btn-icon {
+      display: grid;
+      grid-template-columns: repeat(2, 12px);
+      grid-template-rows: repeat(2, 12px);
+      gap: 4px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+    }
+
+    body.theme-light .account-btn-icon {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .account-google-dot {
+      display: block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .account-google-dot--blue { background: #4285f4; }
+    .account-google-dot--red { background: #ea4335; }
+    .account-google-dot--yellow { background: #fbbc05; }
+    .account-google-dot--green { background: #34a853; }
+
+    .account-btn-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: clamp(16px, 2.6vw, 18px);
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .account-btn-text small {
+      font-size: clamp(12px, 2vw, 13px);
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      color: color-mix(in srgb, var(--panel-text-color) 68%, rgba(222, 233, 238, 0.82));
+    }
+
+    .account-signin-note {
+      margin: 0;
+      font-size: clamp(12px, 2.2vw, 13px);
+      color: color-mix(in srgb, var(--panel-text-color) 58%, rgba(230, 240, 245, 0.8));
+    }
+
+    .account-benefits {
+      display: grid;
+      gap: 12px;
+    }
+
+    .account-benefit {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--input-background) 70%, rgba(28, 38, 44, 0.6));
+      border: 1px solid color-mix(in srgb, var(--input-border-color) 75%, transparent);
+      backdrop-filter: blur(8px);
+    }
+
+    body.theme-light .account-benefit {
+      background: color-mix(in srgb, rgba(223, 238, 234, 0.92) 60%, rgba(198, 217, 228, 0.85));
+      border-color: rgba(166, 198, 209, 0.45);
+    }
+
+    .account-benefit-icon {
+      font-size: clamp(18px, 3vw, 22px);
+      filter: drop-shadow(0 6px 12px rgba(18, 23, 32, 0.28));
+    }
+
+    .account-benefit-text {
+      font-size: clamp(13px, 2.2vw, 14px);
+      line-height: 1.5;
+      color: color-mix(in srgb, var(--panel-text-color) 82%, rgba(219, 231, 236, 0.85));
+    }
+
+    .account-footnote {
+      margin: 0;
+      font-size: clamp(11px, 2vw, 12px);
+      color: color-mix(in srgb, var(--panel-text-color) 55%, rgba(210, 223, 228, 0.76));
+    }
+
     /* Make the main cards layout fill and allow inner section scrolling */
     #cards-panel .cards-layout {
       display: flex;

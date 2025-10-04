@@ -98,13 +98,45 @@ function ensurePanel() {
       <button id="account-close" class="account-close" type="button" aria-label="Close account panel">✕</button>
     </header>
     <main class="panel-content account-main">
-      <section class="account-card" id="account-signed-out">
-        <h3 class="account-heading">Stay in sync</h3>
-        <p class="account-subheading">Save your cozy presets to the cloud and bring them to every ClickTree session.</p>
-        <button id="account-google-btn" type="button" class="account-primary-btn">
-          <span class="account-btn-icon">G</span>
-          <span class="account-btn-text">Sign in with Google</span>
-        </button>
+      <section class="account-card account-card-cozy" id="account-signed-out">
+        <div class="account-hero">
+          <div class="account-hero-illustration" aria-hidden="true">
+            <span class="account-hero-sparkle account-hero-sparkle--one">✦</span>
+            <span class="account-hero-sparkle account-hero-sparkle--two">❀</span>
+            <span class="account-hero-sparkle account-hero-sparkle--three">✶</span>
+          </div>
+          <h3 class="account-heading">Keep your grove in sync</h3>
+          <p class="account-subheading">Rest easy knowing your cozy presets drift with you from session to session.</p>
+          <div class="account-signin-shell">
+            <button id="account-google-btn" type="button" class="account-primary-btn account-google-btn">
+              <span class="account-btn-icon" aria-hidden="true">
+                <span class="account-google-dot account-google-dot--blue"></span>
+                <span class="account-google-dot account-google-dot--red"></span>
+                <span class="account-google-dot account-google-dot--yellow"></span>
+                <span class="account-google-dot account-google-dot--green"></span>
+              </span>
+              <span class="account-btn-text">
+                Glide in with Google
+                <small>Sign in softly & sync in seconds</small>
+              </span>
+            </button>
+          </div>
+          <p class="account-signin-note">We'll open a gentle browser tab for the secure Google login.</p>
+        </div>
+        <div class="account-benefits" role="list">
+          <div class="account-benefit" role="listitem">
+            <span class="account-benefit-icon" aria-hidden="true">🌙</span>
+            <span class="account-benefit-text">Night or day, your presets stay tucked away safely.</span>
+          </div>
+          <div class="account-benefit" role="listitem">
+            <span class="account-benefit-icon" aria-hidden="true">🪴</span>
+            <span class="account-benefit-text">Start a grove on one device and keep growing it anywhere.</span>
+          </div>
+          <div class="account-benefit" role="listitem">
+            <span class="account-benefit-icon" aria-hidden="true">🎵</span>
+            <span class="account-benefit-text">Carry the lofi mood you love across every session.</span>
+          </div>
+        </div>
         <p class="account-footnote">We'll launch your default browser for the secure Google login.</p>
       </section>
       <section class="account-card" id="account-signed-in" hidden>
