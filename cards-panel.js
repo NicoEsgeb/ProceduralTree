@@ -147,12 +147,47 @@
 
     let cards = load();
     let selectedId = loadSelected();
+    let cloudPushedOnce = false, pushTimer = null, pulledThisLogin = false;
+
+    async function syncFromCloudOnce(){
+      if (pulledThisLogin) return;
+      pulledThisLogin = true;
+      const res = await window.clickTreeAPI?.cardsPull?.();
+      if (!res?.ok || !res.data) return;
+      const email = getActiveEmail();
+      if (!email) return;
+      const cloud = Array.isArray(res.data.items) ? res.data.items.filter(c => c?.ownerEmail === email) : [];
+      if (!cloud.length) return;
+      const local = load();
+      const byId = new Map(local.map(c => [String(c.id), c]));
+      for (const c of cloud) {
+        const k = String(c.id);
+        if (!byId.has(k)) local.push(c);
+      }
+      save(local);
+      cards = local;
+      render();
+    }
+
+    function queueCloudPush(){
+      clearTimeout(pushTimer);
+      pushTimer = setTimeout(async () => {
+        const email = getActiveEmail();
+        if (!email) return;
+        const data = { schema: 'cards-v1', email, items: load() };
+        await window.clickTreeAPI?.cardsPush?.(data);
+        cloudPushedOnce = true;
+      }, 600);
+    }
 
     window.addEventListener('auth:changed', () => {
       migrateLegacy();
       cards = load();
       selectedId = loadSelected();
+      pulledThisLogin = false;
+      cloudPushedOnce = false;
       render();
+      syncFromCloudOnce();
     });
 
     function render(){
@@ -505,6 +540,7 @@
       payload.ownerEmail = owner;
       cards.unshift(payload);
       save(cards);
+      queueCloudPush();
       selectedId = String(payload.id);
       saveSelected(selectedId);
       render();

@@ -14,6 +14,41 @@ if (!nodeFetch) {
   };
 }
 
+let googleSession = null;
+let googleClientId = '';
+let googleClientSecret = '';
+
+async function getGoogleAccessToken() {
+  const client_id = googleClientId;
+  const client_secret = googleClientSecret;
+  if (googleSession && Date.now() < (googleSession.expiry - 60000)) {
+    return googleSession.access_token;
+  }
+  if (!client_id || !googleSession?.refresh_token) {
+    return null;
+  }
+  const body = new URLSearchParams({
+    grant_type: 'refresh_token',
+    client_id,
+    refresh_token: googleSession.refresh_token
+  });
+  if (client_secret) body.set('client_secret', client_secret);
+  try {
+    const res = await nodeFetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    });
+    const json = await res.json();
+    if (!res.ok) return null;
+    googleSession.access_token = json.access_token;
+    googleSession.expiry = Date.now() + (json.expires_in || 3600) * 1000;
+    return googleSession.access_token;
+  } catch {
+    return null;
+  }
+}
+
 let mainWindow = null;
 
 function createWindow() {
@@ -363,6 +398,8 @@ ipcMain.handle('google:login', async () => {
     const cfgRaw = await fs.readFile(cfgPath, 'utf8');
     const { client_id, client_secret } = JSON.parse(cfgRaw || '{}');
     if (!client_id) return { ok: false, error: 'missing-client-id' };
+    googleClientId = client_id;
+    googleClientSecret = client_secret || '';
 
     const codeVerifier = base64url(crypto.randomBytes(32));
     const codeChallenge = base64url(crypto.createHash('sha256').update(codeVerifier).digest());
@@ -375,7 +412,7 @@ ipcMain.handle('google:login', async () => {
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('client_id', client_id);
     authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('scope', 'openid email profile');
+    authUrl.searchParams.set('scope', 'openid email profile https://www.googleapis.com/auth/drive.appdata');
     authUrl.searchParams.set('code_challenge', codeChallenge);
     authUrl.searchParams.set('code_challenge_method', 'S256');
     authUrl.searchParams.set('access_type', 'offline');
@@ -419,6 +456,12 @@ ipcMain.handle('google:login', async () => {
       return { ok: false, error: reason };
     }
 
+    googleSession = {
+      access_token: tokenJson.access_token,
+      refresh_token: tokenJson.refresh_token || googleSession?.refresh_token || '',
+      expiry: Date.now() + (tokenJson.expires_in || 3600) * 1000
+    };
+
     const idToken = tokenJson.id_token;
     const claims = parseIdToken(idToken);
     const user = {
@@ -436,6 +479,61 @@ ipcMain.handle('google:login', async () => {
 });
 
 ipcMain.handle('google:logout', async () => {
+  googleSession = null;
+  return { ok: true };
+});
+
+async function driveFindCardsFile(token) {
+  const url = new URL('https://www.googleapis.com/drive/v3/files');
+  url.search = new URLSearchParams({
+    q: "name='clicktree-cards.json' and 'appDataFolder' in parents and trashed=false",
+    spaces: 'appDataFolder',
+    fields: 'files(id,name,modifiedTime)'
+  }).toString();
+  const r = await nodeFetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const j = await r.json();
+  return (j.files || [])[0] || null;
+}
+
+ipcMain.handle('cards:pull', async () => {
+  const token = await getGoogleAccessToken();
+  if (!token) return { ok: false, error: 'no-token' };
+  const file = await driveFindCardsFile(token);
+  if (!file) return { ok: true, data: null };
+  const r = await nodeFetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const text = await r.text();
+  let data = null;
+  try { data = JSON.parse(text); } catch {}
+  return { ok: true, data, fileId: file.id, modifiedTime: file.modifiedTime };
+});
+
+ipcMain.handle('cards:push', async (_e, payload) => {
+  const token = await getGoogleAccessToken();
+  if (!token) return { ok: false, error: 'no-token' };
+  const meta = { name: 'clicktree-cards.json', parents: ['appDataFolder'] };
+  const bodyData = JSON.stringify(payload?.data || {});
+  const boundary = 'ctsync_' + Date.now();
+  const multipart =
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
+    JSON.stringify(meta) + `\r\n` +
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
+    bodyData + `\r\n--${boundary}--`;
+  let file = await driveFindCardsFile(token);
+  const method = file ? 'PATCH' : 'POST';
+  const url = file
+    ? `https://www.googleapis.com/upload/drive/v3/files/${file.id}?uploadType=multipart`
+    : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
+  const r = await nodeFetch(url, {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': `multipart/related; boundary=${boundary}`
+    },
+    body: multipart
+  });
+  if (!r.ok) return { ok: false, error: `push-${r.status}` };
   return { ok: true };
 });
 
