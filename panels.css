@@ -456,14 +456,14 @@ body.cozy-theme .panel-shell {
   /* Cozy light keeps a lighter glass look */
   body.theme-cozy-light #cards-panel .card-thumb .thumb-inner{
     background:
-      radial-gradient(120% 120% at 28% 18%, rgba(154,209,212,0.15), transparent 60%),
-      linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.78));
+      radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,0.05), transparent 60%),
+      linear-gradient(180deg, rgba(22,24,28,0.92), rgba(18,19,23,0.96));
     box-shadow:
-      0 12px 22px rgba(27,19,28,0.22),
+      0 10px 20px rgba(0,0,0,0.45),
       inset 0 0 0 6px rgba(255,255,255,0.10),
       inset 0 18px 36px rgba(255,255,255,0.08),
-      inset 0 1px 0 rgba(255,255,255,0.35),
-      inset 0 -1px 0 rgba(0,0,0,0.06);
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      inset 0 -1px 0 rgba(0,0,0,0.35);
   }
   /* Cozy LIGHT — Inventory */
   body.theme-cozy-light #cards-panel .cards-title {
