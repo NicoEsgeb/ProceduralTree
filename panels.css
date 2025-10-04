@@ -620,4 +620,35 @@ body.cozy-theme .panel-shell {
     box-shadow: 0 0 0 3px rgba(45,130,255,0.45);
   }
   #cards-fab { background: linear-gradient(140deg, var(--ytp-accent), var(--ytp-accent-2)); }
-    
+
+  /* Mint Overlay */
+  #mint-overlay {
+    position: fixed; inset: 0; z-index: 20000; /* above .panel-shell (10k) */
+    display: none; align-items: center; justify-content: center;
+  }
+  #mint-overlay.open { display: flex; }
+  #mint-overlay .mint-scrim {
+    position: absolute; inset: 0;
+    background: radial-gradient(120% 120% at 50% 50%, rgba(0,0,0,0.65), rgba(0,0,0,0.85));
+    backdrop-filter: blur(4px);
+  }
+  #mint-overlay .mint-dialog {
+    position: relative; max-width: 520px; width: min(92vw, 520px);
+    padding: 16px 16px 20px; border-radius: 20px;
+    background: var(--cozy-dialog-bg, rgba(27,19,28,0.92));
+    box-shadow: 0 28px 60px rgba(0,0,0,0.55);
+    color: #fff; text-align: center; isolation: isolate;
+  }
+  body.cozy-theme #mint-overlay .mint-dialog {
+    background: rgba(255,255,255,0.92); color: var(--cozy-ink, #3b2e2a);
+    box-shadow: 0 28px 60px rgba(19,12,24,0.38);
+  }
+  #mint-overlay .mint-title { margin: 6px 0 10px; font-size: 24px; }
+  #mint-overlay .mint-card-slot { margin: 6px auto 12px; perspective: 1200px; }
+  #mint-overlay .mint-actions { display: flex; gap: 10px; justify-content: center; }
+  #mint-overlay .mint-primary,
+  #mint-overlay .mint-secondary {
+    padding: 10px 14px; border-radius: 10px; border: 0; cursor: pointer;
+  }
+  #mint-overlay .mint-primary { background: var(--cozy-accent, #86b7b8); color: #0e0f10; font-weight: 700; }
+  #mint-overlay .mint-secondary { background: rgba(255,255,255,0.12); color: inherit; }

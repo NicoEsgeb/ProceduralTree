@@ -312,12 +312,92 @@
       if (!inner || card.dataset.wired) return;
       card.dataset.wired = 'true';
       let isDragging=false, prevX=0, prevY=0, rx=0, ry=0;
-  
+
       card.addEventListener('mousedown', (e)=>{ e.preventDefault(); isDragging=true; prevX=e.clientX; prevY=e.clientY; inner.style.transition='none'; });
       document.addEventListener('mouseup', ()=>{ if(!isDragging) return; isDragging=false; inner.style.transition='transform 0.8s ease-out'; ry=Math.round(ry/180)*180; rx=0; inner.style.transform=`rotateY(${ry}deg) rotateX(${rx}deg)`; }, { passive:true });
       document.addEventListener('mousemove', (e)=>{ if(!isDragging) return; const dx=e.clientX-prevX, dy=e.clientY-prevY; ry+=dx*0.5; rx=Math.max(-20,Math.min(20,rx-dy*0.3)); if(ry>180) ry-=360; if(ry<-180) ry+=360; inner.style.transform=`rotateY(${ry}deg) rotateX(${rx}deg)`; prevX=e.clientX; prevY=e.clientY; });
       card.addEventListener('dblclick', ()=> card.classList.toggle('flipped'));
     }
+
+    const MintOverlay = (() => {
+      let overlay, slot, viewBtn, currentOnClose;
+
+      function escHandler(e) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          close(false);
+        }
+      }
+
+      function close(openInventory) {
+        if (!overlay) return;
+        overlay.classList.remove('open');
+        overlay.setAttribute('aria-hidden', 'true');
+        document.removeEventListener('keydown', escHandler);
+        if (slot) slot.innerHTML = '';
+        const cb = currentOnClose;
+        currentOnClose = null;
+        if (openInventory && typeof cb === 'function') cb();
+      }
+
+      function ensureOverlay() {
+        if (overlay) return overlay;
+        overlay = document.createElement('div');
+        overlay.id = 'mint-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.innerHTML = `
+  <div class="mint-scrim" data-action="close"></div>
+  <div class="mint-dialog" role="dialog" aria-modal="true" aria-label="New card minted">
+    <h2 class="mint-title cozy-hand">Congratulations, you got a new card!</h2>
+    <div class="mint-card-slot"></div>
+    <div class="mint-actions">
+      <button type="button" class="mint-primary" data-action="view">View in Inventory</button>
+      <button type="button" class="mint-secondary" data-action="close">Keep Studying</button>
+    </div>
+  </div>
+`;
+        document.body.appendChild(overlay);
+        slot = overlay.querySelector('.mint-card-slot');
+        viewBtn = overlay.querySelector('[data-action="view"]');
+
+        viewBtn?.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          close(true);
+        });
+
+        overlay.querySelectorAll('[data-action="close"]').forEach((btn) => {
+          btn.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            close(false);
+          });
+        });
+
+        return overlay;
+      }
+
+      function show(payload, { onClose } = {}) {
+        ensureOverlay();
+        currentOnClose = onClose;
+        if (slot) {
+          slot.innerHTML = renderBigCard(payload);
+          const card = slot.querySelector('.id-card');
+          if (card) {
+            card.classList.add('mint-appear');
+            attachInteractions(card);
+          }
+        }
+        overlay.classList.add('open');
+        overlay.setAttribute('aria-hidden', 'false');
+        document.addEventListener('keydown', escHandler);
+        viewBtn?.focus({ preventScroll: true });
+      }
+
+      function hide({ openInventory = false } = {}) {
+        close(openInventory);
+      }
+
+      return { show, hide };
+    })();
   
     function addCard(payload, { open } = {}){
       if (!payload || !payload.id) return;
@@ -329,9 +409,13 @@
       setTimeout(scrollSelectedIntoView, 0);
       if (open) CardsPanel.open();
     }
-  
+
     // Listen for new minted cards
-    window.addEventListener('cards:new', (e) => addCard(e.detail, { open: true }));
+    window.addEventListener('cards:new', (e) => {
+      const payload = e.detail;
+      addCard(payload, { open: false });
+      MintOverlay.show(payload, { onClose: () => CardsPanel.open() });
+    });
   
     // Panel controller (uses panel-registry)
     const controller = window.createPanelController({
