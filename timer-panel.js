@@ -306,24 +306,39 @@
     if (wasRunning) startTimer();
   }
 
+  // Stop advancing after the final phase; do NOT wrap to 0
   function advancePhase(keepRunning) {
     const resume = keepRunning === true;
     const prev = PHASES[currentPhaseIndex];
-    currentPhaseIndex = (currentPhaseIndex + 1) % PHASES.length;
-    remainingSeconds = PHASES[currentPhaseIndex].duration;
-    updateTimerUI();
-    if (!resume) pauseTimer();
+    const nextIndex = currentPhaseIndex + 1;
 
-    // If we just left Focus, announce completion
+    // If we just left Focus, announce completion of the growth phase
     if (prev?.id === 'learn') {
       emitTimerEvent('study:focus-complete', { title: readSessionTitle() });
     }
+
+    // If we've finished the last phase (Break), stop and announce cycle completion
+    if (nextIndex >= PHASES.length) {
+      pauseTimer();
+      emitTimerEvent('study:cycle-complete', { title: readSessionTitle() });
+      // Leave UI showing the finished Break at 00:00
+      updateTimerUI();
+      return;
+    }
+
+    // Otherwise, move to the next phase
+    currentPhaseIndex = nextIndex;
+    remainingSeconds = PHASES[currentPhaseIndex].duration;
+    updateTimerUI();
+
+    if (!resume) pauseTimer();
   }
 
   function tick() {
     if (!isRunning) return;
     remainingSeconds -= 1;
     if (remainingSeconds <= 0) {
+      // Advance, but do not wrap. If it's the last phase, advancePhase will stop.
       advancePhase(true);
     } else {
       updateTimerUI();
