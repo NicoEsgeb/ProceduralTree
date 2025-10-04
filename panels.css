@@ -639,10 +639,16 @@ body.cozy-theme .panel-shell {
     box-shadow: 0 28px 60px rgba(0,0,0,0.55);
     color: #fff; text-align: center; isolation: isolate;
   }
-  body.cozy-theme #mint-overlay .mint-dialog {
-    background: rgba(255,255,255,0.92); color: var(--cozy-ink, #3b2e2a);
-    box-shadow: 0 28px 60px rgba(19,12,24,0.38);
+  body.cozy-theme #mint-overlay .mint-dialog{
+    background: linear-gradient(160deg, rgba(32,23,44,.96), rgba(17,12,22,.96));
+    color: var(--cozy-dark-text,#f6ead6);
+    border: 1px solid rgba(154,209,212,.22);
+    box-shadow: 0 28px 60px rgba(19,12,24,.55), inset 0 0 0 1px rgba(255,255,255,.04);
   }
+  body.cozy-theme #mint-overlay .mint-dialog::before{
+    content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background: radial-gradient(120% 80% at 50% -10%, rgba(154,209,212,.10), transparent 60%);
+    mix-blend-mode: screen; opacity:.8;
   #mint-overlay .mint-title { margin: 6px 0 10px; font-size: 24px; }
   #mint-overlay .mint-card-slot { margin: 6px auto 12px; perspective: 1200px; }
   #mint-overlay .mint-actions { display: flex; gap: 10px; justify-content: center; }
