@@ -13,6 +13,7 @@ let emailEl;
 let avatarEl;
 let syncStatusEl;
 let syncPillEl;
+let profileHeadingEl;
 let statCardsEl;
 let statSeasonsEl;
 let statBadgesEl;
@@ -26,6 +27,7 @@ let supabaseHintShown = false;
 let openFallbackTimer = null;
 let registeredWithManager = false;
 let cardsObserverAttached = false;
+let resizeHandle = null;
 
 const CARD_INVENTORY_PREFIX = 'CardInventory.v1::';
 const BADGE_THRESHOLDS = {
@@ -33,6 +35,69 @@ const BADGE_THRESHOLDS = {
   grove: 5,
   keeper: 10,
 };
+const ACCOUNT_PANEL_WIDTH_KEY = 'account.panelWidth';
+const ACCOUNT_MIN_WIDTH_FALLBACK = 320;
+const ACCOUNT_MAX_WIDTH_FALLBACK = 660;
+const DEFAULT_PROFILE_NAME = 'Caretaker';
+
+function deriveProfileName(email) {
+  if (!email) return DEFAULT_PROFILE_NAME;
+  const base = email.split('@')[0] || email;
+  const cleaned = base
+    .split(/[._-]/)
+    .filter(Boolean)
+    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+    .join(' ');
+  return cleaned || DEFAULT_PROFILE_NAME;
+}
+
+function getAccountWidthBounds() {
+  const root = document.documentElement;
+  const style = root ? getComputedStyle(root) : null;
+  const min = style ? parseInt(style.getPropertyValue('--account-panel-min-width'), 10) : NaN;
+  const max = style ? parseInt(style.getPropertyValue('--account-panel-max-width'), 10) : NaN;
+  return {
+    min: Number.isFinite(min) ? min : ACCOUNT_MIN_WIDTH_FALLBACK,
+    max: Number.isFinite(max) ? max : ACCOUNT_MAX_WIDTH_FALLBACK,
+  };
+}
+
+function clampAccountWidth(value) {
+  if (!value) return '';
+  const numeric = typeof value === 'number' ? value : parseInt(String(value), 10);
+  if (!Number.isFinite(numeric)) return '';
+  const { min, max } = getAccountWidthBounds();
+  const clamped = Math.min(max, Math.max(min, numeric));
+  return `${clamped}px`;
+}
+
+function applyStoredAccountWidth(targetPanel) {
+  if (!targetPanel) return;
+  try {
+    const stored = localStorage.getItem(ACCOUNT_PANEL_WIDTH_KEY);
+    const clamped = clampAccountWidth(stored);
+    if (clamped) {
+      targetPanel.style.width = clamped;
+    }
+  } catch (_) {}
+}
+
+function storeAccountPanelWidth(width) {
+  const clamped = clampAccountWidth(width);
+  if (!clamped) return;
+  if (panel) {
+    panel.style.width = clamped;
+  }
+  if (resizeHandle) {
+    const numeric = parseInt(clamped, 10);
+    if (Number.isFinite(numeric)) {
+      resizeHandle.setAttribute('aria-valuenow', String(numeric));
+    }
+  }
+  try {
+    localStorage.setItem(ACCOUNT_PANEL_WIDTH_KEY, clamped);
+  } catch (_) {}
+}
 
 function updateFabVisual(user) {
   const btn = fabBtn || document.getElementById('account-fab');
@@ -102,6 +167,7 @@ function ensurePanel() {
   panel.className = 'panel-shell account-panel';
   panel.setAttribute('aria-hidden', 'true');
   panel.innerHTML = `
+    <div class="account-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize account panel" tabindex="0"></div>
     <header class="panel-topbar account-topbar">
       <div class="account-title">
         <span class="account-emblem">🌿</span>
@@ -110,126 +176,134 @@ function ensurePanel() {
       <button id="account-close" class="account-close" type="button" aria-label="Close account panel">✕</button>
     </header>
     <main class="panel-content account-main">
-      <section class="account-card account-card-cozy" id="account-signed-out">
-        <div class="account-hero">
-          <div class="account-hero-illustration" aria-hidden="true">
-            <span class="account-hero-sparkle account-hero-sparkle--one">✦</span>
-            <span class="account-hero-sparkle account-hero-sparkle--two">❀</span>
-            <span class="account-hero-sparkle account-hero-sparkle--three">✶</span>
+      <div class="account-stack">
+        <section class="account-card account-card-cozy" id="account-signed-out">
+          <div class="account-hero">
+            <div class="account-hero-illustration" aria-hidden="true">
+              <span class="account-hero-sparkle account-hero-sparkle--one">✦</span>
+              <span class="account-hero-sparkle account-hero-sparkle--two">❀</span>
+              <span class="account-hero-sparkle account-hero-sparkle--three">✶</span>
+            </div>
+            <h3 class="account-heading">Keep your grove in sync</h3>
+            <p class="account-subheading">Rest easy knowing your cozy presets drift with you from session to session.</p>
+            <div class="account-signin-shell">
+              <button id="account-google-btn" type="button" class="account-primary-btn account-google-btn">
+                <span class="account-btn-icon" aria-hidden="true">
+                  <span class="account-google-dot account-google-dot--blue"></span>
+                  <span class="account-google-dot account-google-dot--red"></span>
+                  <span class="account-google-dot account-google-dot--yellow"></span>
+                  <span class="account-google-dot account-google-dot--green"></span>
+                </span>
+                <span class="account-btn-text">
+                  Glide in with Google
+                  <small>Sign in softly & sync in seconds</small>
+                </span>
+              </button>
+            </div>
+            <p class="account-signin-note">We'll open a gentle browser tab for the secure Google login.</p>
           </div>
-          <h3 class="account-heading">Keep your grove in sync</h3>
-          <p class="account-subheading">Rest easy knowing your cozy presets drift with you from session to session.</p>
-          <div class="account-signin-shell">
-            <button id="account-google-btn" type="button" class="account-primary-btn account-google-btn">
-              <span class="account-btn-icon" aria-hidden="true">
-                <span class="account-google-dot account-google-dot--blue"></span>
-                <span class="account-google-dot account-google-dot--red"></span>
-                <span class="account-google-dot account-google-dot--yellow"></span>
-                <span class="account-google-dot account-google-dot--green"></span>
-              </span>
-              <span class="account-btn-text">
-                Glide in with Google
-                <small>Sign in softly & sync in seconds</small>
-              </span>
-            </button>
+          <div class="account-benefits" role="list">
+            <div class="account-benefit" role="listitem">
+              <span class="account-benefit-icon" aria-hidden="true">🌙</span>
+              <span class="account-benefit-text">Night or day, your presets stay tucked away safely.</span>
+            </div>
+            <div class="account-benefit" role="listitem">
+              <span class="account-benefit-icon" aria-hidden="true">🪴</span>
+              <span class="account-benefit-text">Start a grove on one device and keep growing it anywhere.</span>
+            </div>
+            <div class="account-benefit" role="listitem">
+              <span class="account-benefit-icon" aria-hidden="true">🎵</span>
+              <span class="account-benefit-text">Carry the lofi mood you love across every session.</span>
+            </div>
           </div>
-          <p class="account-signin-note">We'll open a gentle browser tab for the secure Google login.</p>
-        </div>
-        <div class="account-benefits" role="list">
-          <div class="account-benefit" role="listitem">
-            <span class="account-benefit-icon" aria-hidden="true">🌙</span>
-            <span class="account-benefit-text">Night or day, your presets stay tucked away safely.</span>
+          <p class="account-footnote">We'll launch your default browser for the secure Google login.</p>
+        </section>
+        <section class="account-card account-card-profile" id="account-signed-in" hidden>
+          <div class="account-profile-hero">
+            <span class="account-profile-uptitle">Welcome back</span>
+            <h3 class="account-profile-heading" id="account-profile-heading">Caretaker</h3>
+            <p class="account-profile-subheading">Keep tending your grove and watch it flourish.</p>
           </div>
-          <div class="account-benefit" role="listitem">
-            <span class="account-benefit-icon" aria-hidden="true">🪴</span>
-            <span class="account-benefit-text">Start a grove on one device and keep growing it anywhere.</span>
+          <div class="account-profile-header">
+            <div class="account-avatar-ring" aria-hidden="true">
+              <span class="account-avatar-glow"></span>
+              <div class="account-avatar" id="account-avatar">•</div>
+            </div>
+            <div class="account-profile-copy">
+              <span class="account-profile-label">Logged in as</span>
+              <div class="account-email" id="account-email"></div>
+              <div class="account-meta">Tending the grove with Google</div>
+            </div>
+            <span class="account-profile-pill" id="account-sync-pill">Signed in</span>
           </div>
-          <div class="account-benefit" role="listitem">
-            <span class="account-benefit-icon" aria-hidden="true">🎵</span>
-            <span class="account-benefit-text">Carry the lofi mood you love across every session.</span>
+          <div class="account-profile-stats" role="list">
+            <div class="account-stat" role="listitem">
+              <span class="account-stat-value" id="account-stat-cards">0</span>
+              <span class="account-stat-label">Cards in your grove</span>
+            </div>
+            <div class="account-stat" role="listitem">
+              <span class="account-stat-value" id="account-stat-seasons">0</span>
+              <span class="account-stat-label">Seasons of focus</span>
+            </div>
+            <div class="account-stat" role="listitem">
+              <span class="account-stat-value" id="account-stat-badges">0</span>
+              <span class="account-stat-label">Badges unlocked</span>
+            </div>
           </div>
-        </div>
-        <p class="account-footnote">We'll launch your default browser for the secure Google login.</p>
-      </section>
-      <section class="account-card account-card-profile" id="account-signed-in" hidden>
-        <div class="account-profile-header">
-          <div class="account-avatar-ring" aria-hidden="true">
-            <span class="account-avatar-glow"></span>
-            <div class="account-avatar" id="account-avatar">•</div>
-          </div>
-          <div class="account-profile-copy">
-            <span class="account-profile-label">Logged in as</span>
-            <div class="account-email" id="account-email"></div>
-            <div class="account-meta">Tending the grove with Google</div>
-          </div>
-          <span class="account-profile-pill" id="account-sync-pill">Signed in</span>
-        </div>
-        <div class="account-profile-stats" role="list">
-          <div class="account-stat" role="listitem">
-            <span class="account-stat-value" id="account-stat-cards">0</span>
-            <span class="account-stat-label">Cards in your grove</span>
-          </div>
-          <div class="account-stat" role="listitem">
-            <span class="account-stat-value" id="account-stat-seasons">0</span>
-            <span class="account-stat-label">Seasons of focus</span>
-          </div>
-          <div class="account-stat" role="listitem">
-            <span class="account-stat-value" id="account-stat-badges">0</span>
-            <span class="account-stat-label">Badges unlocked</span>
-          </div>
-        </div>
-        <div class="account-badges-block">
-          <h4 class="account-section-title">Badge shelf</h4>
-          <div class="account-badges" role="list">
-            <div class="account-badge" data-badge="sprout" role="listitem">
-              <span class="account-badge-icon" aria-hidden="true">🌱</span>
-              <div class="account-badge-info">
-                <span class="account-badge-title">First Sprout</span>
-                <span class="account-badge-desc">Collect your first card.</span>
+          <div class="account-badges-block">
+            <h4 class="account-section-title">Badge shelf</h4>
+            <div class="account-badges" role="list">
+              <div class="account-badge" data-badge="sprout" role="listitem">
+                <span class="account-badge-icon" aria-hidden="true">🌱</span>
+                <div class="account-badge-info">
+                  <span class="account-badge-title">First Sprout</span>
+                  <span class="account-badge-desc">Collect your first card.</span>
+                </div>
+                <span class="account-badge-state">Locked</span>
               </div>
-              <span class="account-badge-state">Locked</span>
-            </div>
-            <div class="account-badge" data-badge="grove" role="listitem">
-              <span class="account-badge-icon" aria-hidden="true">🌳</span>
-              <div class="account-badge-info">
-                <span class="account-badge-title">Growing Grove</span>
-                <span class="account-badge-desc">Gather five cards to fill your grove.</span>
+              <div class="account-badge" data-badge="grove" role="listitem">
+                <span class="account-badge-icon" aria-hidden="true">🌳</span>
+                <div class="account-badge-info">
+                  <span class="account-badge-title">Growing Grove</span>
+                  <span class="account-badge-desc">Gather five cards to fill your grove.</span>
+                </div>
+                <span class="account-badge-state">Locked</span>
               </div>
-              <span class="account-badge-state">Locked</span>
-            </div>
-            <div class="account-badge" data-badge="keeper" role="listitem">
-              <span class="account-badge-icon" aria-hidden="true">🦉</span>
-              <div class="account-badge-info">
-                <span class="account-badge-title">Night Keeper</span>
-                <span class="account-badge-desc">Hold onto ten cards across your sessions.</span>
+              <div class="account-badge" data-badge="keeper" role="listitem">
+                <span class="account-badge-icon" aria-hidden="true">🦉</span>
+                <div class="account-badge-info">
+                  <span class="account-badge-title">Night Keeper</span>
+                  <span class="account-badge-desc">Hold onto ten cards across your sessions.</span>
+                </div>
+                <span class="account-badge-state">Locked</span>
               </div>
-              <span class="account-badge-state">Locked</span>
             </div>
           </div>
-        </div>
-        <div class="account-sync-card">
-          <div class="account-sync-row">
-            <div>
-              <div class="account-sync-title">Cloud presets</div>
-              <div class="account-sync-status" id="account-sync-status">Last synced: never</div>
+          <div class="account-sync-card">
+            <div class="account-sync-row">
+              <div>
+                <div class="account-sync-title">Cloud presets</div>
+                <div class="account-sync-status" id="account-sync-status">Last synced: never</div>
+              </div>
+            </div>
+            <div class="account-sync-actions">
+              <button id="account-sync-btn" type="button" class="account-secondary-btn">
+                <span class="account-sync-text">Sync now</span>
+              </button>
+              <button id="account-signout-btn" type="button" class="account-tertiary-btn">Sign out</button>
             </div>
           </div>
-          <div class="account-sync-actions">
-            <button id="account-sync-btn" type="button" class="account-secondary-btn">
-              <span class="account-sync-text">Sync now</span>
-            </button>
-            <button id="account-signout-btn" type="button" class="account-tertiary-btn">Sign out</button>
-          </div>
-        </div>
-      </section>
-      <section class="account-alert" id="account-config-warning" hidden>
-        <strong>Cloud sync is almost ready</strong>
-        <p>We're putting the finishing touches on secure saves. Feel free to keep working — you'll be able to sign in again shortly.</p>
-      </section>
-      <section class="account-alert error" id="account-error" hidden></section>
+        </section>
+        <section class="account-alert" id="account-config-warning" hidden>
+          <strong>Cloud sync is almost ready</strong>
+          <p>We're putting the finishing touches on secure saves. Feel free to keep working — you'll be able to sign in again shortly.</p>
+        </section>
+        <section class="account-alert error" id="account-error" hidden></section>
+      </div>
     </main>
     <footer class="account-footer">Secure sign-in powered by Google</footer>
   `;
+  applyStoredAccountWidth(panel);
   document.body.appendChild(panel);
 
   closeBtn = panel.querySelector('#account-close');
@@ -242,12 +316,21 @@ function ensurePanel() {
   avatarEl = panel.querySelector('#account-avatar');
   syncStatusEl = panel.querySelector('#account-sync-status');
   syncPillEl = panel.querySelector('#account-sync-pill');
+  profileHeadingEl = panel.querySelector('#account-profile-heading');
   statCardsEl = panel.querySelector('#account-stat-cards');
   statSeasonsEl = panel.querySelector('#account-stat-seasons');
   statBadgesEl = panel.querySelector('#account-stat-badges');
   badgeEls = panel.querySelectorAll('.account-badge');
   errorEl = panel.querySelector('#account-error');
   configNoticeEl = panel.querySelector('#account-config-warning');
+  resizeHandle = panel.querySelector('.account-resize-handle');
+
+  if (resizeHandle) {
+    const { min, max } = getAccountWidthBounds();
+    resizeHandle.setAttribute('aria-valuemin', String(min));
+    resizeHandle.setAttribute('aria-valuemax', String(max));
+    resizeHandle.setAttribute('aria-valuenow', String(Math.round(panel.getBoundingClientRect().width)));
+  }
 
   closeBtn?.addEventListener('click', () => AccountPanel.close());
   signInBtn?.addEventListener('click', handleSignInClick);
@@ -259,6 +342,63 @@ function ensurePanel() {
       AccountPanel.close();
     }
   });
+
+  if (resizeHandle && !resizeHandle.dataset.bound) {
+    let resizing = false;
+    let startX = 0;
+    let startWidth = 0;
+
+    function onPointerMove(ev) {
+      if (!resizing) return;
+      const { min, max } = getAccountWidthBounds();
+      const dx = startX - ev.clientX;
+      const nextWidth = Math.min(max, Math.max(min, startWidth + dx));
+      panel.style.width = `${nextWidth}px`;
+      resizeHandle.setAttribute('aria-valuenow', String(Math.round(nextWidth)));
+    }
+
+    function onPointerUp(ev) {
+      if (!resizing) return;
+      resizing = false;
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
+      document.removeEventListener('pointercancel', onPointerUp);
+      if (ev && typeof ev.pointerId === 'number') {
+        resizeHandle.releasePointerCapture?.(ev.pointerId);
+      }
+      storeAccountPanelWidth(panel.getBoundingClientRect().width);
+    }
+
+    resizeHandle.addEventListener('pointerdown', (ev) => {
+      ev.preventDefault();
+      resizing = true;
+      startX = ev.clientX;
+      startWidth = panel.getBoundingClientRect().width;
+      if (typeof ev.pointerId === 'number') {
+        resizeHandle.setPointerCapture?.(ev.pointerId);
+      }
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', onPointerUp);
+      document.addEventListener('pointercancel', onPointerUp);
+    });
+
+    resizeHandle.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+      ev.preventDefault();
+      const delta = ev.key === 'ArrowLeft' ? 24 : -24;
+      const current = panel.getBoundingClientRect().width;
+      storeAccountPanelWidth(current + delta);
+    });
+
+    resizeHandle.addEventListener('dblclick', () => {
+      const style = getComputedStyle(document.documentElement);
+      const ideal = parseInt(style.getPropertyValue('--account-panel-ideal-width'), 10);
+      const fallbackWidth = Number.isFinite(ideal) ? ideal : 460;
+      storeAccountPanelWidth(fallbackWidth);
+    });
+
+    resizeHandle.dataset.bound = 'true';
+  }
 
   if (!cardsObserverAttached) {
     const refreshStats = () => {
@@ -404,10 +544,13 @@ function render(state) {
 
   signedInSection?.toggleAttribute('hidden', !signedIn);
   signedOutSection?.toggleAttribute('hidden', signedIn);
+  if (signedInSection) signedInSection.style.display = signedIn ? '' : 'none';
+  if (signedOutSection) signedOutSection.style.display = signedIn ? 'none' : '';
 
   if (signedIn) {
     const email = user.email || 'Signed in';
     if (emailEl) emailEl.textContent = email;
+    if (profileHeadingEl) profileHeadingEl.textContent = deriveProfileName(email);
     updateAvatar(email);
     if (syncStatusEl) {
       const lastSync = state.lastSyncAt || getLastSyncAt();
@@ -419,6 +562,7 @@ function render(state) {
     }
     updateProfileStats(email);
   } else {
+    if (profileHeadingEl) profileHeadingEl.textContent = DEFAULT_PROFILE_NAME;
     updateProfileStats('');
   }
 

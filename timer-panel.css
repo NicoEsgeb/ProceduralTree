@@ -1,715 +1,673 @@
-/* Timer panel specific styles */
+/* Timer panel styling – cozy profile-inspired look */
 
 #timer-fab {
-    background: var(--fab-secondary-bg, var(--ytp-accent-2));
-  }
-  
-  .timer-topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 18px 14px 20px;
-    gap: 16px;
-  }
-  
-  .timer-title {
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-  }
-  
-  .timer-actions {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-  }
-  
-  .timer-actions button {
-    background: #1d2128;
-    color: var(--ytp-text);
-    border: 1px solid var(--ytp-border);
-    border-radius: 999px;
-    padding: 6px 14px;
-    cursor: pointer;
-  }
-  
-  .timer-actions button:hover { filter: brightness(1.08); }
-  .timer-actions button:focus { outline: none; box-shadow: var(--ytp-focus); }
-  
-  .timer-close {
-    background: transparent;
-    border: none;
-    color: var(--ytp-text-dim);
-    font-size: 20px;
-    line-height: 1;
-    cursor: pointer;
-  }
-  
-  .timer-close:hover { color: var(--ytp-text); }
-  .timer-close:focus { outline: none; box-shadow: var(--ytp-focus); }
-  
+  --timer-fab-accent: #9ad1d4;
+  --timer-fab-accent-2: #86b6b8;
+  background: linear-gradient(140deg, var(--timer-accent, var(--timer-fab-accent)), var(--timer-accent-soft, var(--timer-fab-accent-2)));
+  color: var(--timer-pill-ink, #0e1219);
+}
+
+#timer-panel {
+  --timer-bg: linear-gradient(180deg, rgba(26, 35, 42, 0.95), rgba(15, 22, 27, 0.98)),
+               radial-gradient(120% 160% at 12% 8%, rgba(134, 182, 184, 0.18), transparent 60%),
+               radial-gradient(150% 140% at 88% 92%, rgba(80, 112, 143, 0.16), transparent 65%);
+  --timer-surface: color-mix(in srgb, rgba(28, 41, 49, 0.88) 70%, rgba(255, 255, 255, 0.06));
+  --timer-surface-soft: color-mix(in srgb, rgba(24, 34, 41, 0.78) 65%, rgba(255, 255, 255, 0.08));
+  --timer-ribbon: color-mix(in srgb, rgba(30, 44, 52, 0.82) 70%, rgba(134, 182, 184, 0.08));
+  --timer-card: color-mix(in srgb, rgba(25, 36, 42, 0.82) 70%, rgba(255, 255, 255, 0.08));
+  --timer-border: rgba(134, 182, 184, 0.35);
+  --timer-border-soft: rgba(134, 182, 184, 0.18);
+  --timer-divider: rgba(134, 182, 184, 0.18);
+  --timer-ink: #eef6f7;
+  --timer-muted: rgba(207, 226, 228, 0.72);
+  --timer-title: #f8fdfc;
+  --timer-accent: rgba(134, 182, 184, 0.95);
+  --timer-accent-soft: rgba(182, 219, 219, 0.92);
+  --timer-pill-ink: rgba(18, 26, 28, 0.92);
+  --timer-secondary: rgba(35, 48, 55, 0.78);
+  --timer-focus: 0 0 0 2px rgba(154, 209, 212, 0.55), 0 14px 30px rgba(10, 20, 24, 0.35);
+  --timer-shadow: 0 26px 52px rgba(4, 10, 16, 0.42);
+  --timer-shadow-soft: 0 20px 40px rgba(4, 10, 16, 0.3);
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  background: var(--timer-bg);
+  color: var(--timer-ink);
+  border-left: 1px solid var(--timer-border-soft);
+  box-shadow: var(--timer-shadow);
+}
+
+body.cozy-theme #timer-panel {
+  --timer-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(246, 234, 214, 0.96)),
+               radial-gradient(160% 140% at 20% -10%, rgba(154, 209, 212, 0.22), transparent 55%),
+               radial-gradient(140% 150% at 85% 110%, rgba(201, 173, 211, 0.18), transparent 60%);
+  --timer-surface: rgba(255, 255, 255, 0.86);
+  --timer-surface-soft: rgba(255, 255, 255, 0.78);
+  --timer-ribbon: rgba(255, 255, 255, 0.82);
+  --timer-card: rgba(255, 255, 255, 0.85);
+  --timer-border: rgba(59, 46, 42, 0.16);
+  --timer-border-soft: rgba(59, 46, 42, 0.1);
+  --timer-divider: rgba(59, 46, 42, 0.12);
+  --timer-ink: var(--cozy-ink);
+  --timer-muted: rgba(59, 46, 42, 0.6);
+  --timer-title: var(--cozy-plum-700);
+  --timer-accent: var(--cozy-accent);
+  --timer-accent-soft: var(--cozy-accent-2);
+  --timer-pill-ink: var(--cozy-ink);
+  --timer-secondary: rgba(255, 255, 255, 0.78);
+  --timer-focus: 0 0 0 2px rgba(154, 209, 212, 0.45), 0 16px 34px rgba(134, 182, 184, 0.28);
+  --timer-shadow: 0 28px 48px rgba(59, 46, 42, 0.22);
+  --timer-shadow-soft: 0 20px 36px rgba(59, 46, 42, 0.16);
+}
+
+body.theme-cozy-dark #timer-panel {
+  --timer-bg: linear-gradient(180deg, rgba(35, 24, 46, 0.96), rgba(20, 12, 32, 0.98)),
+               radial-gradient(150% 140% at 18% -4%, rgba(154, 209, 212, 0.22), transparent 60%),
+               radial-gradient(160% 150% at 90% 120%, rgba(134, 182, 184, 0.18), transparent 55%);
+  --timer-surface: rgba(32, 23, 44, 0.88);
+  --timer-surface-soft: rgba(27, 18, 38, 0.76);
+  --timer-ribbon: rgba(27, 18, 38, 0.84);
+  --timer-card: rgba(24, 16, 34, 0.78);
+  --timer-border: rgba(154, 209, 212, 0.32);
+  --timer-border-soft: rgba(154, 209, 212, 0.18);
+  --timer-divider: rgba(154, 209, 212, 0.24);
+  --timer-ink: var(--cozy-dark-text);
+  --timer-muted: var(--cozy-dark-soft-muted);
+  --timer-title: rgba(154, 209, 212, 0.92);
+  --timer-accent: rgba(154, 209, 212, 0.9);
+  --timer-accent-soft: rgba(207, 236, 236, 0.88);
+  --timer-pill-ink: #201425;
+  --timer-secondary: rgba(29, 20, 38, 0.82);
+  --timer-focus: 0 0 0 2px rgba(154, 209, 212, 0.58), 0 18px 36px rgba(19, 12, 24, 0.5);
+  --timer-shadow: 0 28px 52px rgba(8, 8, 16, 0.55);
+  --timer-shadow-soft: 0 22px 44px rgba(8, 8, 16, 0.45);
+}
+
+.timer-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px 28px 18px;
+  background: transparent;
+  border-bottom: 1px solid var(--timer-border-soft);
+}
+
+.timer-title {
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--timer-title);
+}
+
+.timer-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.timer-actions button,
+.timer-controls button,
+.timer-todo-form button {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 11px 22px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--timer-accent), var(--timer-accent-soft));
+  color: var(--timer-pill-ink);
+  box-shadow: var(--timer-shadow-soft);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.timer-actions button:hover,
+.timer-controls button:hover,
+.timer-todo-form button:hover {
+  filter: brightness(1.04);
+  transform: translateY(-2px);
+}
+
+.timer-actions button:focus-visible,
+.timer-controls button:focus-visible,
+.timer-todo-form button:focus-visible {
+  outline: none;
+  box-shadow: var(--timer-focus);
+}
+
+.timer-actions button:active,
+.timer-controls button:active,
+.timer-todo-form button:active {
+  transform: translateY(0);
+}
+
+.timer-close {
+  background: transparent;
+  border: none;
+  color: var(--timer-muted);
+  font-size: 20px;
+  padding: 6px;
+  min-width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.timer-close:hover {
+  color: var(--timer-title);
+  transform: translateY(-2px);
+}
+
+.timer-close:focus-visible {
+  outline: none;
+  box-shadow: var(--timer-focus);
+}
+
+.timer-main {
+  flex: 1;
+  display: grid;
+  gap: 28px;
+  padding: 32px 28px 40px;
+  background: transparent;
+  overflow-y: auto;
+}
+
+.timer-hero {
+  position: relative;
+}
+
+.timer-hero-card {
+  position: relative;
+  display: grid;
+  gap: 22px;
+  padding: 28px;
+  border-radius: 28px;
+  background: var(--timer-surface);
+  border: 1px solid var(--timer-border-soft);
+  box-shadow: var(--timer-shadow);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.timer-hero-card::before,
+.timer-hero-card::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.timer-hero-card::before {
+  inset: -45% 40% auto -25%;
+  height: 320px;
+  background: radial-gradient(ellipse at center, rgba(154, 209, 212, 0.35), transparent 68%);
+}
+
+.timer-hero-card::after {
+  inset: 55% -25% -40% 35%;
+  background: radial-gradient(ellipse at center, rgba(134, 182, 184, 0.25), transparent 70%);
+}
+
+.timer-hero-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.timer-hero-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.timer-hero-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.timer-hero-uptitle {
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--timer-muted);
+}
+
+.timer-hero-tagline {
+  margin: 0;
+  max-width: 26ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--timer-muted);
+}
+
+.timer-phase-meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  color: var(--timer-muted);
+  font-size: 13px;
+}
+
+.timer-phase-badge {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, var(--timer-accent), var(--timer-accent-soft));
+  color: var(--timer-pill-ink);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.timer-phase-body {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.timer-countdown-card {
+  flex: 1 1 220px;
+  max-width: 280px;
+  display: grid;
+  gap: 14px;
+  padding: 24px 26px;
+  border-radius: 22px;
+  background: var(--timer-secondary);
+  border: 1px solid var(--timer-border);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), var(--timer-shadow-soft);
+}
+
+.timer-countdown {
+  font-size: clamp(50px, 6vw, 72px);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--timer-title);
+}
+
+.timer-progress-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--timer-surface-soft);
+  border: 1px solid var(--timer-border-soft);
+  overflow: hidden;
+}
+
+.timer-progress-bar {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--timer-accent), var(--timer-accent-soft));
+  transition: width 220ms ease;
+}
+
+.timer-phase-info {
+  flex: 1 1 240px;
+  display: grid;
+  gap: 12px;
+  padding: 12px 4px 12px 0;
+}
+
+.timer-phase-title {
+  margin: 0;
+  font-size: clamp(32px, 4.4vw, 46px);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--timer-title);
+}
+
+.timer-phase-subtitle {
+  margin: 0;
+  font-size: 16px;
+  color: var(--timer-muted);
+  max-width: 60ch;
+}
+
+.timer-cycle-ribbon {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: var(--timer-ribbon);
+  border: 1px solid var(--timer-border-soft);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.timer-cycle-heading {
+  font-size: 16px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--timer-title);
+}
+
+.timer-cycle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.timer-cycle-item {
+  flex: 1 1 150px;
+  min-width: 150px;
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--timer-secondary) 80%, transparent);
+  border: 1px solid var(--timer-border-soft);
+  color: var(--timer-muted);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.timer-cycle-item[data-state="active"] {
+  border-color: var(--timer-border);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--timer-secondary) 75%, rgba(255, 255, 255, 0.1)), rgba(255, 255, 255, 0.12));
+  color: var(--timer-ink);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 28px rgba(6, 12, 18, 0.26);
+}
+
+.timer-cycle-item[data-state="upnext"] {
+  border-color: color-mix(in srgb, var(--timer-border) 65%, transparent);
+}
+
+.timer-cycle-title {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--timer-title);
+}
+
+.timer-cycle-duration {
+  font-size: 13px;
+  color: var(--timer-muted);
+}
+
+.timer-session-card {
+  display: grid;
+  gap: 10px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: var(--timer-surface-soft);
+  border: 1px solid var(--timer-border-soft);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.timer-session-label {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--timer-muted);
+}
+
+#timer-session-title {
+  width: 100%;
+  border: 1px solid var(--timer-border);
+  border-radius: 14px;
+  background: var(--timer-card);
+  color: var(--timer-ink);
+  padding: 10px 12px;
+  font-size: 15px;
+  transition: border 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+#timer-session-title::placeholder {
+  color: color-mix(in srgb, var(--timer-muted) 70%, transparent);
+}
+
+#timer-session-title:focus-visible {
+  outline: none;
+  border-color: var(--timer-accent-soft);
+  box-shadow: var(--timer-focus);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+#timer-session-title.needs-title {
+  border-color: rgba(255, 112, 112, 0.6);
+  box-shadow: 0 0 0 3px rgba(255, 112, 112, 0.2);
+}
+
+.timer-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.timer-controls button {
+  min-width: 148px;
+}
+
+.timer-controls button.secondary {
+  background: var(--timer-secondary);
+  color: var(--timer-ink);
+  border: 1px solid var(--timer-border);
+  box-shadow: none;
+}
+
+.timer-controls button.secondary:hover {
+  background: color-mix(in srgb, var(--timer-secondary) 80%, rgba(255, 255, 255, 0.08));
+}
+
+.timer-todo-section {
+  margin-top: 0;
+}
+
+.timer-todo-card {
+  position: relative;
+  display: grid;
+  gap: 20px;
+  padding: 28px;
+  border-radius: 26px;
+  background: var(--timer-surface);
+  border: 1px solid var(--timer-border-soft);
+  box-shadow: var(--timer-shadow);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.timer-todo-card::before {
+  content: "";
+  position: absolute;
+  inset: -28% 55% 42% -18%;
+  background: radial-gradient(ellipse at center, rgba(134, 182, 184, 0.28), transparent 70%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.timer-todo-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.timer-todo-header {
+  display: grid;
+  gap: 6px;
+}
+
+.timer-todo-title {
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  color: var(--timer-title);
+}
+
+.timer-todo-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--timer-muted);
+}
+
+.timer-todo-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--timer-surface-soft);
+  border: 1px solid var(--timer-border-soft);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.timer-todo-form input {
+  flex: 1;
+  min-width: 200px;
+  border: 1px solid var(--timer-border);
+  border-radius: 14px;
+  background: var(--timer-card);
+  color: var(--timer-ink);
+  padding: 10px 12px;
+  font-size: 15px;
+  transition: border 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.timer-todo-form input::placeholder {
+  color: color-mix(in srgb, var(--timer-muted) 70%, transparent);
+}
+
+.timer-todo-form input:focus-visible {
+  outline: none;
+  border-color: var(--timer-accent-soft);
+  box-shadow: var(--timer-focus);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.timer-todo-list {
+  display: grid;
+  gap: 12px;
+}
+
+.timer-todo-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--timer-card);
+  border: 1px solid var(--timer-border);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), var(--timer-shadow-soft);
+  transition: opacity 0.18s ease;
+}
+
+.timer-todo-item[data-complete="true"] {
+  opacity: 0.6;
+}
+
+.timer-todo-checkbox {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--timer-accent);
+  cursor: pointer;
+}
+
+.timer-todo-text {
+  font-size: 15px;
+  color: var(--timer-ink);
+  line-height: 1.5;
+}
+
+.timer-todo-item[data-complete="true"] .timer-todo-text {
+  text-decoration: line-through;
+  color: color-mix(in srgb, var(--timer-muted) 80%, transparent);
+}
+
+.timer-todo-delete {
+  background: transparent;
+  border: none;
+  color: var(--timer-muted);
+  font-size: 18px;
+  cursor: pointer;
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.timer-todo-delete:hover {
+  color: rgba(255, 130, 130, 0.85);
+  transform: translateY(-1px);
+}
+
+.timer-todo-delete:focus-visible {
+  outline: none;
+  box-shadow: var(--timer-focus);
+}
+
+.timer-empty {
+  font-size: 14px;
+  text-align: center;
+  color: var(--timer-muted);
+}
+
+.timer-footer {
+  padding: 18px 24px;
+  font-size: 13px;
+  color: var(--timer-muted);
+  text-align: center;
+  border-top: 1px solid var(--timer-border-soft);
+  background: var(--timer-surface-soft);
+}
+
+@media (max-width: 1024px) {
   .timer-main {
-    flex: 1;
-    overflow-y: auto;
-    display: flex;
+    padding: 28px 24px 36px;
+  }
+}
+
+@media (max-width: 780px) {
+  .timer-hero-card {
+    padding: 24px;
+  }
+
+  .timer-phase-body {
     flex-direction: column;
-    background: linear-gradient(160deg, rgba(45,130,255,0.12), rgba(17,19,23,0.9));
-  }
-  
-  .timer-hero {
-    padding: 28px 24px 24px;
-    display: grid;
-    gap: 18px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-  }
-  
-  .timer-phase-meta {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    color: var(--ytp-text-dim);
-    font-size: 13px;
-  }
-  
-  .timer-phase-badge {
-    background: rgba(45,130,255,0.16);
-    color: #dbe7ff;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
-  }
-  
-  .timer-phase-title {
-    font-size: 42px;
-    font-weight: 600;
-    letter-spacing: -0.5px;
-  }
-  
-  .timer-phase-subtitle {
-    font-size: 16px;
-    color: var(--ytp-text-dim);
-    max-width: 80%;
-  }
-  
-  .timer-countdown {
-    font-size: 64px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    font-variant-numeric: tabular-nums;
-  }
-  
-  .timer-progress-track {
-    position: relative;
-    width: 100%;
-    height: 10px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.08);
-    overflow: hidden;
-  }
-  
-  .timer-progress-bar {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 0;
-    border-radius: inherit;
-    background: linear-gradient(90deg, rgba(45,130,255,0.9), rgba(95,189,255,0.9));
-    transition: width 220ms ease;
   }
 
-  #timer-panel .timer-session-row { margin-top: 10px; }
-  #timer-session-title { width: 100%; }
-  #timer-session-title.needs-title {
-    border-color: rgba(255, 80, 80, 0.6);
-    box-shadow: 0 0 0 3px rgba(255, 80, 80, 0.2);
+  .timer-countdown-card {
+    max-width: none;
   }
 
-  .timer-controls {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
+  .timer-hero-tagline {
+    max-width: 100%;
   }
-  
-  .timer-controls button {
-    border-radius: 999px;
-    border: none;
-    cursor: pointer;
-    padding: 10px 24px;
-    font-weight: 600;
-    letter-spacing: 0.2px;
-    color: #0e1219;
-    background: #61c1ff;
-    box-shadow: 0 10px 28px rgba(45,130,255,0.22);
-  }
-  
-  .timer-controls button.secondary {
-    background: rgba(13,17,25,0.85);
-    color: var(--ytp-text);
-    border: 1px solid rgba(97, 193, 255, 0.4);
-    box-shadow: none;
-  }
-  
-  .timer-controls button:hover { filter: brightness(1.05); }
-  .timer-controls button:focus { outline: none; box-shadow: var(--ytp-focus); }
-  
+}
+
+@media (max-width: 620px) {
   .timer-cycle {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
   }
-  
-  .timer-cycle-item {
-    background: rgba(15,17,23,0.8);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: var(--ytp-radius);
-    padding: 12px 14px;
-    display: grid;
-    gap: 6px;
-    color: var(--ytp-text-dim);
-    transition: border-color 180ms ease, transform 180ms ease;
+
+  .timer-controls button {
+    flex: 1 1 100%;
   }
-  
-  .timer-cycle-item[data-state="active"] {
-    color: var(--ytp-text);
-    border-color: rgba(97,193,255,0.8);
-    transform: translateY(-2px);
+}
+
+@media (max-width: 560px) {
+  .timer-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
   }
-  
-  .timer-cycle-item[data-state="upnext"] {
-    border-color: rgba(97,193,255,0.4);
-  }
-  
-  .timer-cycle-title {
-    font-weight: 600;
-  }
-  
-  .timer-cycle-duration {
-    font-size: 13px;
-    opacity: 0.8;
-  }
-  
-  .timer-todo-section {
-    padding: 26px 24px 32px;
-    display: grid;
-    gap: 20px;
-  }
-  
-  .timer-todo-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-  
-  .timer-todo-title {
-    font-size: 20px;
-    font-weight: 600;
-  }
-  
-  .timer-todo-form {
-    display: flex;
-    gap: 10px;
+
+  .timer-actions {
     width: 100%;
-  }
-  
-  .timer-todo-form input {
-    flex: 1;
-    padding: 10px 14px;
-    border-radius: var(--ytp-radius);
-    border: 1px solid var(--ytp-border);
-    background: rgba(12,14,19,0.9);
-    color: var(--ytp-text);
-  }
-  
-  .timer-todo-form input::placeholder { color: rgba(230,232,235,0.5); }
-  .timer-todo-form input:focus { outline: none; box-shadow: var(--ytp-focus); border-color: rgba(97,193,255,0.5); }
-  
-  .timer-todo-form button {
-    border: none;
-    border-radius: var(--ytp-radius);
-    padding: 10px 18px;
-    font-weight: 600;
-    cursor: pointer;
-    background: rgba(45,130,255,0.85);
-    color: #fff;
-    box-shadow: 0 10px 24px rgba(45,130,255,0.25);
-  }
-  
-  .timer-todo-form button:hover { filter: brightness(1.04); }
-  .timer-todo-form button:focus { outline: none; box-shadow: var(--ytp-focus); }
-  
-  .timer-todo-list {
-    display: grid;
-    gap: 12px;
-  }
-  
-  .timer-todo-item {
-    background: rgba(10,12,16,0.9);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: var(--ytp-radius);
-    padding: 12px 14px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-  
-  .timer-todo-item[data-complete="true"] {
-    opacity: 0.6;
-  }
-  
-  .timer-todo-checkbox {
-    accent-color: rgba(97,193,255,0.9);
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-  }
-  
-  .timer-todo-text {
-    flex: 1;
-    font-size: 15px;
-    line-height: 1.4;
-  }
-  
-  .timer-todo-item[data-complete="true"] .timer-todo-text {
-    text-decoration: line-through;
-    color: rgba(230,232,235,0.55);
-  }
-  
-  .timer-todo-delete {
-    background: transparent;
-    border: none;
-    color: rgba(230,232,235,0.55);
-    cursor: pointer;
-    font-size: 18px;
-    line-height: 1;
-  }
-  
-  .timer-todo-delete:hover { color: #ff6b6b; }
-  .timer-todo-delete:focus { outline: none; box-shadow: var(--ytp-focus); }
-  
-  .timer-empty {
-    font-size: 14px;
-    color: rgba(230,232,235,0.55);
-    text-align: center;
-    padding: 12px 0;
-  }
-  
-  .timer-footer {
-    padding: 14px 20px;
-    font-size: 12px;
-    color: rgba(230,232,235,0.45);
-    text-align: center;
-    border-top: 1px solid var(--ytp-border);
-    background: rgba(17,19,23,0.92);
-  }
-  
-  body.cozy-theme .timer-title,
-  body.cozy-theme .timer-phase-title {
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-    color: var(--cozy-plum-700);
-    letter-spacing: 0.04em;
-  }
-  
-  body.cozy-theme #timer-panel {
-    background: var(--cozy-paper);
-    color: var(--cozy-ink);
-    border-left: 1px solid rgba(59, 46, 42, 0.12);
-    border-radius: 24px 0 0 24px;
-    box-shadow: 0 24px 48px rgba(19, 10, 22, 0.38);
-    background-image:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(246, 234, 214, 0.96) 48%, rgba(233, 214, 189, 0.98)),
-      radial-gradient(120% 160% at 12% 8%, rgba(154, 209, 212, 0.16), transparent 55%),
-      radial-gradient(160% 120% at 88% 92%, rgba(134, 182, 184, 0.12), transparent 60%);
-    background-blend-mode: soft-light, normal, normal;
-    overflow: hidden;
-    isolation: isolate;
-  }
-  
-  body.cozy-theme #timer-panel {
-    visibility: hidden;
-    transition: transform 220ms ease, width 120ms ease, visibility 0s linear 220ms;
-  }
-  
-  body.cozy-theme #timer-panel.open {
-    visibility: visible;
-    transition: transform 220ms ease, width 120ms ease;
-  }
-  
-  body.cozy-theme #timer-panel .timer-phase-title {
-    font-size: 40px;
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.cozy-theme #timer-panel .timer-main {
-    background: linear-gradient(180deg, rgba(246, 234, 214, 0.34), rgba(176, 160, 188, 0.08));
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.cozy-theme #timer-panel .timer-hero {
-    background: rgba(255, 255, 255, 0.78);
-    border-bottom: 1px solid rgba(59, 46, 42, 0.14);
-  }
-  
-  body.cozy-theme #timer-panel .timer-phase-badge {
-    background: rgba(134, 182, 184, 0.26);
-    color: var(--cozy-plum-700);
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-    letter-spacing: 0.08em;
-  }
-  
-  body.cozy-theme #timer-panel .timer-phase-subtitle,
-  body.cozy-theme #timer-panel .timer-phase-meta {
-    color: rgba(59, 46, 42, 0.66);
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-    font-weight: 500;
-  }
-  
-  body.cozy-theme #timer-panel .timer-phase-meta span,
-  body.cozy-theme #timer-panel .timer-phase-meta strong {
-    font-family: inherit;
-  }
-  
-  body.cozy-theme #timer-panel .timer-countdown {
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-    color: var(--cozy-plum-700);
-    text-shadow: 0 2px 12px rgba(43, 31, 56, 0.25);
-  }
-  
-  body.cozy-theme #timer-panel .timer-progress-track {
-    background: rgba(59, 46, 42, 0.18);
-  }
-  
-  body.cozy-theme #timer-panel .timer-progress-bar {
-    background: linear-gradient(90deg, var(--cozy-accent), var(--cozy-accent-2));
-  }
-  
-  body.cozy-theme #timer-panel input,
-  body.cozy-theme #timer-panel select,
-  body.cozy-theme #timer-panel textarea,
-  body.cozy-theme #timer-panel .timer-controls button,
-  body.cozy-theme #timer-panel .timer-actions button,
-  body.cozy-theme #timer-panel .timer-todo-form button {
-    border-radius: 14px;
-    border: 1px solid rgba(59, 46, 42, 0.16);
-    background: rgba(255, 255, 255, 0.78);
-    color: var(--cozy-ink);
-    box-shadow: 0 8px 22px rgba(27, 19, 28, 0.15);
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.cozy-theme #timer-panel input,
-  body.cozy-theme #timer-panel select,
-  body.cozy-theme #timer-panel textarea {
-    padding: 8px 12px;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
-  }
-  
-  body.cozy-theme #timer-panel .timer-actions button,
-  body.cozy-theme #timer-panel .timer-controls button:not(.secondary),
-  body.cozy-theme #timer-panel .timer-todo-form button {
-    background: linear-gradient(140deg, var(--cozy-accent), var(--cozy-accent-2));
-    color: var(--cozy-ink);
-    border-color: rgba(59, 46, 42, 0.12);
-    box-shadow: 0 12px 26px rgba(27, 19, 28, 0.22);
-  }
-  
-  body.cozy-theme #timer-panel .timer-controls button.secondary {
-    background: rgba(255, 255, 255, 0.74);
-    color: var(--cozy-ink);
-    box-shadow: 0 10px 22px rgba(27, 19, 28, 0.14);
-  }
-  
-  body.cozy-theme #timer-panel .timer-close {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    color: rgba(59, 46, 42, 0.55);
-  }
-  
-  body.cozy-theme #timer-panel .timer-cycle-item,
-  body.cozy-theme #timer-panel .timer-todo-item {
-    color: var(--cozy-ink);
-  }
-  
-  body.cozy-theme #timer-panel .timer-cycle-item {
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(59, 46, 42, 0.16);
-    border-radius: 18px;
-    box-shadow: 0 14px 28px rgba(27, 19, 28, 0.16);
-  }
-  
-  body.cozy-theme #timer-panel .timer-cycle-item[data-state="active"] {
-    border-color: rgba(134, 182, 184, 0.6);
-    box-shadow: 0 18px 28px rgba(27, 19, 28, 0.22);
-  }
-  
-  body.cozy-theme #timer-panel .timer-cycle-item[data-state="upnext"] {
-    border-color: rgba(134, 182, 184, 0.32);
-  }
-  
-  body.cozy-theme #timer-panel .timer-cycle-title {
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-    color: var(--cozy-plum-700);
-    font-size: 17px;
-  }
-  
-  body.cozy-theme #timer-panel .timer-cycle-duration {
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-    color: rgba(59, 46, 42, 0.62);
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-title {
-    color: var(--cozy-plum-700);
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-form {
-    background: rgba(255, 255, 255, 0.8);
-    padding: 12px;
-    gap: 14px;
-    border-radius: 16px;
-    border: 1px solid rgba(59, 46, 42, 0.12);
-    box-shadow: 0 10px 22px rgba(27, 19, 28, 0.12);
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-form input {
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(59, 46, 42, 0.14);
-    color: var(--cozy-ink);
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-form input::placeholder {
-    color: rgba(59, 46, 42, 0.45);
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-item {
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(59, 46, 42, 0.12);
-    border-radius: 16px;
-    box-shadow: 0 12px 24px rgba(27, 19, 28, 0.16);
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-item .timer-todo-text {
-    color: var(--cozy-ink);
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-item[data-complete="true"] .timer-todo-text {
-    color: rgba(59, 46, 42, 0.5);
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-delete {
-    color: rgba(59, 46, 42, 0.45);
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-delete:hover {
-    color: var(--cozy-plum-700);
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-delete:focus-visible {
-    box-shadow: 0 0 0 2px rgba(154, 209, 212, 0.5);
-  }
-  
-  body.cozy-theme #timer-panel .timer-footer {
-    background: rgba(255, 255, 255, 0.82);
-    color: rgba(59, 46, 42, 0.68);
-    border-top: 1px solid rgba(59, 46, 42, 0.12);
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-checkbox {
-    accent-color: var(--cozy-accent);
-  }
-  
-  body.theme-cozy-dark .timer-title,
-  body.theme-cozy-dark .timer-phase-title {
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-    color: rgba(154, 209, 212, 0.9);
-    letter-spacing: 0.04em;
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-main {
-    background: linear-gradient(180deg, rgba(37, 26, 50, 0.55), rgba(16, 10, 24, 0.92));
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-hero {
-    background: rgba(29, 20, 38, 0.82);
-    border-bottom: 1px solid var(--cozy-dark-border);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-phase-badge {
-    background: rgba(134, 182, 184, 0.3);
-    color: rgba(246, 234, 214, 0.96);
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-    letter-spacing: 0.08em;
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-phase-subtitle,
-  body.theme-cozy-dark #timer-panel .timer-phase-meta {
-    color: var(--cozy-dark-soft-muted);
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-    font-weight: 500;
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-countdown {
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-    color: rgba(154, 209, 212, 0.92);
-    text-shadow: 0 2px 18px rgba(8, 8, 16, 0.6);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-progress-track {
-    background: rgba(246, 234, 214, 0.18);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-progress-bar {
-    background: linear-gradient(90deg, rgba(134, 182, 184, 0.92), rgba(154, 209, 212, 0.85));
-  }
-  
-  body.theme-cozy-dark #timer-panel input,
-  body.theme-cozy-dark #timer-panel select,
-  body.theme-cozy-dark #timer-panel textarea,
-  body.theme-cozy-dark #timer-panel .timer-controls button,
-  body.theme-cozy-dark #timer-panel .timer-actions button,
-  body.theme-cozy-dark #timer-panel .timer-todo-form button {
-    border-radius: 16px;
-    border: 1px solid var(--cozy-dark-border-strong);
-    background: rgba(29, 20, 38, 0.78);
-    color: var(--cozy-dark-text);
-    box-shadow: 0 12px 28px rgba(19, 12, 24, 0.4);
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.theme-cozy-dark #timer-panel input,
-  body.theme-cozy-dark #timer-panel select,
-  body.theme-cozy-dark #timer-panel textarea {
-    padding: 8px 12px;
-    background: rgba(24, 16, 34, 0.82);
-    box-shadow: none;
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-actions button,
-  body.theme-cozy-dark #timer-panel .timer-controls button:not(.secondary),
-  body.theme-cozy-dark #timer-panel .timer-todo-form button {
-    background: linear-gradient(140deg, rgba(134, 182, 184, 0.88), rgba(134, 182, 184, 0.7));
-    color: #1f1426;
-    border-color: rgba(246, 234, 214, 0.3);
-    box-shadow: 0 16px 36px rgba(19, 12, 24, 0.45);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-controls button.secondary {
-    background: rgba(24, 16, 34, 0.82);
-    color: var(--cozy-dark-text);
-    border: 1px solid rgba(154, 209, 212, 0.3);
-    box-shadow: 0 12px 24px rgba(8, 8, 16, 0.45);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-close {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    color: rgba(246, 234, 214, 0.65);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-cycle-item,
-  body.theme-cozy-dark #timer-panel .timer-todo-item {
-    color: var(--cozy-dark-text);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-cycle-item {
-    background: rgba(24, 16, 34, 0.88);
-    border: 1px solid rgba(154, 209, 212, 0.24);
-    box-shadow: 0 18px 32px rgba(8, 8, 16, 0.42);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-cycle-item[data-state="active"] {
-    border-color: rgba(97,193,255,0.8);
-    transform: translateY(-2px);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-cycle-item[data-state="upnext"] {
-    border-color: rgba(97,193,255,0.4);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-cycle-title {
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-    color: rgba(154, 209, 212, 0.9);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-cycle-duration {
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-    color: rgba(246, 234, 214, 0.65);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-title {
-    color: rgba(154, 209, 212, 0.9);
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-form {
-    background: rgba(24, 16, 34, 0.85);
-    padding: 12px;
-    gap: 14px;
-    border-radius: 16px;
-    border: 1px solid var(--cozy-dark-border-strong);
-    box-shadow: var(--cozy-dark-secondary-shadow);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-form input {
-    background: rgba(19, 12, 24, 0.82);
-    border: 1px solid rgba(154, 209, 212, 0.28);
-    color: var(--cozy-dark-text);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-form input::placeholder {
-    color: rgba(246, 234, 214, 0.45);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-form button {
-    box-shadow: 0 16px 32px rgba(19, 12, 24, 0.48);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-item {
-    border: 1px solid rgba(154, 209, 212, 0.24);
-    background: rgba(24, 16, 34, 0.88);
-    box-shadow: 0 18px 32px rgba(8, 8, 16, 0.42);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-item[data-complete="true"] .timer-todo-text {
-    color: rgba(246, 234, 214, 0.45);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-delete {
-    color: rgba(246, 234, 214, 0.58);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-delete:hover {
-    color: #f87373;
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-checkbox {
-    accent-color: rgba(154, 209, 212, 0.9);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-footer {
-    color: rgba(246, 234, 214, 0.55);
-    border-top: 1px solid rgba(154, 209, 212, 0.18);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-delete:focus-visible {
-    box-shadow: var(--cozy-dark-focus);
-  }
-  
-  body.theme-cozy-dark .timer-controls input[type="range"] {
-    accent-color: rgba(154, 209, 212, 0.85);
-  }
-  
-  body.cozy-theme .timer-controls input[type="range"] {
-    accent-color: var(--cozy-accent);
-  }
+    justify-content: flex-end;
+  }
+
+  .timer-todo-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timer-actions button,
+  .timer-controlsifft button,
+  .timer-todo-form button,
+  .timer-cycle-item {
+    transition: none;
+  }
+}

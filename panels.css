@@ -14,6 +14,9 @@
     --ytp-focus: 0 0 0 2px rgba(45,130,255,0.4);
     --ytp-radius: 12px;
     --ytp-shadow: 0 12px 32px rgba(0,0,0,0.45);
+    --account-panel-ideal-width: 460px;
+    --account-panel-min-width: 320;
+    --account-panel-max-width: 660;
   }
 
   /* Cozy LIGHT – shared shell look for all panels */
@@ -214,19 +217,55 @@ body.cozy-theme .panel-shell {
     position: fixed;
     top: 0;
     right: 0;
-    width: 420px;
-    max-width: 90vw;
+    width: var(--account-panel-ideal-width, 460px);
+    max-width: min(95vw, 720px);
     height: 100%;
     background: var(--panel-surface, #0f1115);
     border-left: 1px solid var(--panel-border, #2a2f37);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
     transform: translateX(100%);
-    transition: transform 0.22s ease;
+    transition: transform 0.22s ease, width 0.18s ease;
+    will-change: transform, width;
     z-index: 10010;
   }
   
   .account-panel.open {
     transform: translateX(0);
+  }
+
+  .account-panel .account-resize-handle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 10px;
+    height: 100%;
+    cursor: ew-resize;
+    display: block;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
+    z-index: 2;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .account-panel .account-resize-handle::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(154, 209, 212, 0.28), rgba(170, 186, 209, 0.16));
+    opacity: 0;
+    transition: opacity 0.22s ease;
+    pointer-events: none;
+  }
+
+  .account-panel .account-resize-handle:hover::after,
+  .account-panel .account-resize-handle:focus-visible::after {
+    opacity: 1;
+  }
+
+  .account-panel .account-resize-handle:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(154, 209, 212, 0.5);
   }
   
   .account-topbar {
@@ -252,9 +291,54 @@ body.cozy-theme .panel-shell {
   }
   
   .account-main {
-    padding: 12px;
-    height: calc(100% - 48px);
+    position: relative;
+    flex: 1 1 auto;
+    padding: clamp(28px, 6vw, 42px) clamp(24px, 5vw, 48px);
     overflow: auto;
+    background: linear-gradient(180deg, rgba(10, 16, 20, 0.85), rgba(13, 18, 24, 0.94));
+  }
+
+  .account-main::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(120% 100% at 18% 6%, rgba(132, 187, 175, 0.2), transparent 60%),
+      radial-gradient(140% 120% at 84% 94%, rgba(119, 157, 196, 0.22), transparent 70%);
+    opacity: 0.95;
+    pointer-events: none;
+  }
+
+  .account-main > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  body.theme-light .account-main {
+    background: linear-gradient(180deg, rgba(239, 245, 243, 0.88), rgba(228, 238, 244, 0.96));
+  }
+
+  body.theme-light .account-main::before {
+    background:
+      radial-gradient(140% 110% at 20% 8%, rgba(169, 215, 204, 0.35), transparent 58%),
+      radial-gradient(160% 120% at 82% 94%, rgba(182, 208, 228, 0.28), transparent 72%);
+    opacity: 0.9;
+  }
+
+  .account-main [hidden] {
+    display: none !important;
+  }
+
+  .account-stack {
+    display: grid;
+    gap: clamp(22px, 5vw, 30px);
+    width: min(100%, 560px);
+    margin: 0 auto;
+    padding-bottom: clamp(24px, 6vw, 48px);
+  }
+
+  .account-stack > section {
+    position: relative;
   }
   
   .account-card {
@@ -262,7 +346,6 @@ body.cozy-theme .panel-shell {
     border: 1px solid var(--panel-border, #2a2f37);
     border-radius: 12px;
     padding: 12px;
-    margin-bottom: 12px;
   }
   
   .account-primary-btn,
@@ -385,10 +468,21 @@ body.cozy-theme .panel-shell {
       border-color: color-mix(in srgb, var(--panel-border-color) 45%, rgba(151, 171, 185, 0.38));
     }
 
+    body.theme-light .account-hero {
+      background: color-mix(in srgb, rgba(233, 245, 240, 0.95) 72%, rgba(207, 224, 234, 0.88));
+      border-color: rgba(168, 200, 214, 0.42);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), 0 20px 34px rgba(105, 137, 156, 0.25);
+    }
+
     .account-hero {
       position: relative;
       display: grid;
       gap: clamp(14px, 3vw, 20px);
+      padding: clamp(10px, 3vw, 16px) clamp(12px, 4vw, 20px) clamp(18px, 4vw, 24px);
+      border-radius: 22px;
+      background: color-mix(in srgb, var(--input-background) 68%, rgba(20, 29, 36, 0.82));
+      border: 1px solid color-mix(in srgb, var(--input-border-color) 70%, transparent);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 18px 34px rgba(9, 12, 18, 0.28);
     }
 
     .account-hero-illustration {
@@ -564,20 +658,23 @@ body.cozy-theme .panel-shell {
       padding: clamp(26px, 4vw, 34px);
       border-radius: 24px;
       background:
-        linear-gradient(145deg, rgba(96, 147, 137, 0.22), rgba(81, 104, 145, 0.18) 55%, rgba(57, 77, 104, 0.28)),
+        linear-gradient(145deg, rgba(96, 147, 137, 0.24), rgba(81, 104, 145, 0.2) 55%, rgba(57, 77, 104, 0.32)),
         var(--panel-background);
-      border: 1px solid color-mix(in srgb, var(--panel-border-color) 55%, transparent);
-      box-shadow: var(--panel-secondary-shadow, 0 22px 46px rgba(9, 12, 20, 0.32));
+      border: 1px solid color-mix(in srgb, var(--panel-border-color) 65%, transparent);
+      box-shadow: var(--panel-secondary-shadow, 0 24px 52px rgba(6, 10, 18, 0.35));
       overflow: hidden;
       isolation: isolate;
+      backdrop-filter: blur(16px);
     }
 
     .account-card-profile::before {
       content: '';
       position: absolute;
       inset: 18px;
-      background: radial-gradient(circle at 12% 18%, rgba(210, 236, 223, 0.42), transparent 65%);
-      opacity: 0.75;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(210, 236, 223, 0.48), transparent 60%),
+        radial-gradient(circle at 70% 90%, rgba(120, 165, 189, 0.28), transparent 70%);
+      opacity: 0.85;
       pointer-events: none;
       z-index: -1;
     }
@@ -586,8 +683,45 @@ body.cozy-theme .panel-shell {
       background:
         linear-gradient(145deg, rgba(183, 235, 219, 0.6), rgba(178, 209, 226, 0.42) 55%, rgba(146, 180, 213, 0.35)),
         var(--panel-background);
-      border-color: rgba(142, 181, 197, 0.45);
-      box-shadow: 0 24px 50px rgba(75, 97, 122, 0.18);
+      border-color: rgba(142, 181, 197, 0.5);
+      box-shadow: 0 28px 58px rgba(75, 97, 122, 0.22);
+    }
+
+    .account-profile-hero {
+      display: grid;
+      gap: 6px;
+      padding: clamp(10px, 2.6vw, 14px) clamp(12px, 2.4vw, 16px);
+      border-radius: 18px;
+      background: color-mix(in srgb, var(--input-background) 65%, rgba(27, 39, 46, 0.76));
+      border: 1px solid color-mix(in srgb, var(--input-border-color) 75%, transparent);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 16px 32px rgba(10, 16, 24, 0.28);
+    }
+
+    body.theme-light .account-profile-hero {
+      background: color-mix(in srgb, rgba(226, 241, 236, 0.95) 70%, rgba(204, 222, 235, 0.92));
+      border-color: rgba(168, 200, 214, 0.42);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35), 0 18px 34px rgba(105, 137, 156, 0.32);
+    }
+
+    .account-profile-uptitle {
+      font-size: 12px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: color-mix(in srgb, var(--panel-text-color) 60%, rgba(214, 227, 230, 0.92));
+    }
+
+    .account-profile-heading {
+      margin: 0;
+      font-size: clamp(22px, 4vw, 28px);
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      color: color-mix(in srgb, var(--panel-text-color) 95%, rgba(244, 255, 253, 0.92));
+    }
+
+    .account-profile-subheading {
+      margin: 0;
+      font-size: clamp(13px, 2.4vw, 15px);
+      color: color-mix(in srgb, var(--panel-text-color) 70%, rgba(214, 229, 233, 0.85));
     }
 
     .account-profile-header {
@@ -595,6 +729,11 @@ body.cozy-theme .panel-shell {
       grid-template-columns: auto 1fr auto;
       gap: clamp(16px, 4vw, 28px);
       align-items: center;
+      padding: clamp(14px, 3vw, 20px);
+      border-radius: 20px;
+      background: color-mix(in srgb, var(--input-background) 65%, rgba(21, 31, 37, 0.78));
+      border: 1px solid color-mix(in srgb, var(--input-border-color) 72%, transparent);
+      box-shadow: 0 18px 32px rgba(9, 12, 20, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
     }
 
     .account-avatar-ring {
@@ -615,6 +754,12 @@ body.cozy-theme .panel-shell {
       box-shadow:
         inset 0 0 0 2px rgba(255, 255, 255, 0.5),
         0 14px 32px rgba(118, 144, 166, 0.32);
+    }
+
+    body.theme-light .account-profile-header {
+      background: color-mix(in srgb, rgba(228, 241, 236, 0.92) 70%, rgba(203, 221, 234, 0.9));
+      border-color: rgba(170, 200, 214, 0.45);
+      box-shadow: 0 20px 38px rgba(105, 137, 156, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.45);
     }
 
     .account-avatar-glow {
@@ -683,7 +828,7 @@ body.cozy-theme .panel-shell {
 
     .account-profile-stats {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
       gap: clamp(12px, 3vw, 18px);
     }
 
@@ -696,6 +841,7 @@ body.cozy-theme .panel-shell {
       background: color-mix(in srgb, var(--input-background) 65%, rgba(28, 38, 46, 0.7));
       border: 1px solid color-mix(in srgb, var(--input-border-color) 70%, transparent);
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(8px);
     }
 
     body.theme-light .account-stat {
@@ -719,6 +865,17 @@ body.cozy-theme .panel-shell {
     .account-badges-block {
       display: grid;
       gap: 12px;
+      padding: clamp(10px, 2.4vw, 14px);
+      border-radius: 18px;
+      background: color-mix(in srgb, var(--input-background) 60%, rgba(23, 32, 40, 0.7));
+      border: 1px solid color-mix(in srgb, var(--input-border-color) 70%, transparent);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+
+    body.theme-light .account-badges-block {
+      background: color-mix(in srgb, rgba(226, 241, 236, 0.92) 65%, rgba(203, 221, 234, 0.85));
+      border-color: rgba(168, 200, 214, 0.42);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
     }
 
     .account-section-title {
@@ -745,6 +902,7 @@ body.cozy-theme .panel-shell {
       background: color-mix(in srgb, var(--input-background) 70%, rgba(23, 33, 41, 0.75));
       border: 1px solid color-mix(in srgb, var(--input-border-color) 68%, transparent);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
+      backdrop-filter: blur(6px);
     }
 
     .account-badge[data-state="unlocked"] {
@@ -795,6 +953,42 @@ body.cozy-theme .panel-shell {
       color: rgba(244, 255, 252, 0.95);
     }
 
+    .account-alert {
+      padding: clamp(16px, 3.2vw, 22px);
+      border-radius: 18px;
+      background: color-mix(in srgb, var(--input-background) 62%, rgba(25, 34, 39, 0.8));
+      border: 1px solid color-mix(in srgb, var(--input-border-color) 72%, transparent);
+      box-shadow: 0 14px 24px rgba(8, 12, 18, 0.22);
+      display: grid;
+      gap: 8px;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .account-alert strong {
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .account-alert.error {
+      background: linear-gradient(160deg, rgba(203, 94, 94, 0.18), rgba(208, 118, 118, 0.12));
+      border-color: rgba(219, 130, 130, 0.35);
+      color: color-mix(in srgb, var(--panel-text-color) 82%, rgba(255, 229, 229, 0.88));
+    }
+
+    body.theme-light .account-alert {
+      background: color-mix(in srgb, rgba(236, 244, 241, 0.94) 70%, rgba(207, 224, 234, 0.88));
+      border-color: rgba(170, 200, 214, 0.42);
+      box-shadow: 0 18px 32px rgba(105, 137, 156, 0.2);
+    }
+
+    body.theme-light .account-alert.error {
+      background: linear-gradient(160deg, rgba(255, 224, 224, 0.92), rgba(255, 244, 244, 0.86));
+      border-color: rgba(222, 142, 142, 0.55);
+      color: #742f2f;
+    }
+
     .account-sync-card {
       display: grid;
       gap: 16px;
@@ -802,7 +996,8 @@ body.cozy-theme .panel-shell {
       border-radius: 20px;
       background: linear-gradient(150deg, rgba(38, 54, 63, 0.9), rgba(40, 64, 71, 0.92));
       border: 1px solid rgba(128, 166, 179, 0.4);
-      box-shadow: 0 22px 40px rgba(5, 10, 15, 0.32);
+      box-shadow: 0 22px 40px rgba(5, 10, 15, 0.36);
+      backdrop-filter: blur(12px);
     }
 
     body.theme-light .account-sync-card {
@@ -837,6 +1032,92 @@ body.cozy-theme .panel-shell {
 
     .account-sync-actions button {
       flex: 1 1 160px;
+    }
+
+    @media (max-width: 540px) {
+      .account-main {
+        padding: 24px 20px;
+      }
+
+      .account-stack {
+        gap: 18px;
+        width: 100%;
+        padding-bottom: 24px;
+      }
+
+      .account-card-cozy,
+      .account-card-profile {
+        padding: 24px;
+        border-radius: 18px;
+      }
+
+      .account-profile-hero {
+        text-align: center;
+        justify-items: center;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .account-profile-header {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+        gap: 18px;
+        padding: 18px;
+      }
+
+      .account-profile-copy {
+        text-align: center;
+        align-items: center;
+      }
+
+      .account-profile-pill {
+        justify-self: center;
+        margin-top: 4px;
+      }
+
+      .account-profile-stats {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+      }
+
+      .account-stat {
+        text-align: center;
+        align-items: center;
+        justify-items: center;
+        padding: 16px;
+      }
+
+      .account-badges {
+        gap: 8px;
+      }
+
+      .account-badge {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+        padding: 14px 16px;
+      }
+
+      .account-badge-info {
+        text-align: center;
+      }
+
+      .account-badge-state {
+        margin-top: 4px;
+      }
+
+      .account-benefits {
+        gap: 10px;
+      }
+
+      .account-benefit {
+        align-items: flex-start;
+      }
+
+      .account-sync-card {
+        padding: 20px 18px;
+      }
     }
 
     /* Make the main cards layout fill and allow inner section scrolling */
