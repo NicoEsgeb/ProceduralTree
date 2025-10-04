@@ -5,10 +5,18 @@
     function getActiveEmail(){
       try { return (JSON.parse(localStorage.getItem('ClickTreeAccount'))?.user?.email || '').toLowerCase(); } catch(_) { return ''; }
     }
-    function invKey(){ const e = getActiveEmail() || 'guest'; return `${BASE_INV}::${e}`; }
-    function selKey(){ const e = getActiveEmail() || 'guest'; return `${BASE_SEL}::${e}`; }
-  
-    let panel, gridEl, emptyEl, closeBtn, viewerEl;
+    function invKey(){
+      const email = getActiveEmail();
+      if (!email) return null;
+      return `${BASE_INV}::${email}`;
+    }
+    function selKey(){
+      const email = getActiveEmail();
+      if (!email) return null;
+      return `${BASE_SEL}::${email}`;
+    }
+
+    let panel, gridEl, emptyEl, closeBtn, viewerEl, actionsEl;
     let navWired = false;
   
     function ensurePanel(){
@@ -44,6 +52,7 @@
       gridEl   = panel.querySelector('#cards-grid');
       emptyEl  = panel.querySelector('#cards-empty');
       viewerEl = panel.querySelector('#cards-viewer');
+      actionsEl = panel.querySelector('#cards-actions');
       closeBtn = panel.querySelector('#cards-close');
       closeBtn.addEventListener('click', () => CardsPanel.close());
       panel.addEventListener('keydown', (e) => { if (e.key === 'Escape') CardsPanel.close(); });
@@ -74,9 +83,11 @@
     function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
     function load(){
       try {
-        const data = JSON.parse(localStorage.getItem(invKey())) || [];
+        const key = invKey();
+        if (!key) return [];
+        const data = JSON.parse(localStorage.getItem(key)) || [];
         if (!Array.isArray(data)) return [];
-        const owner = getActiveEmail() || 'guest';
+        const owner = getActiveEmail() || '';
         let changed = false;
         const normalized = data.map((item) => {
           if (!item || typeof item !== 'object') return item;
@@ -90,27 +101,55 @@
         return [];
       }
     }
-    function save(list){ try { localStorage.setItem(invKey(), JSON.stringify(list)); } catch(_) {} }
-    function loadSelected(){ try { return localStorage.getItem(selKey())||''; } catch(_) { return ''; } }
-    function saveSelected(id){ try { localStorage.setItem(selKey(), id||''); } catch(_) {} }
-
-    (function migrateLegacy(){
+    function save(list){
       try {
+        const key = invKey();
+        if (!key) return;
+        localStorage.setItem(key, JSON.stringify(list));
+      } catch(_) {}
+    }
+    function loadSelected(){
+      try {
+        const key = selKey();
+        if (!key) return '';
+        return localStorage.getItem(key)||'';
+      } catch(_) { return ''; }
+    }
+    function saveSelected(id){
+      try {
+        const key = selKey();
+        if (!key) return;
+        localStorage.setItem(key, id||'');
+      } catch(_) {}
+    }
+
+    function migrateLegacy(){
+      try {
+        const email = getActiveEmail();
+        if (!email) return;
+        const inventoryKey = invKey();
+        const selectedKey = selKey();
+        if (!inventoryKey || !selectedKey) return;
         const legacy = localStorage.getItem(BASE_INV);
-        if (legacy && !localStorage.getItem(invKey())) {
-          localStorage.setItem(invKey(), legacy);
+        if (legacy && !localStorage.getItem(inventoryKey)) {
+          localStorage.setItem(inventoryKey, legacy);
+          localStorage.removeItem(BASE_INV);
         }
         const legacySel = localStorage.getItem(BASE_SEL);
-        if (legacySel && !localStorage.getItem(selKey())) {
-          localStorage.setItem(selKey(), legacySel);
+        if (legacySel && !localStorage.getItem(selectedKey)) {
+          localStorage.setItem(selectedKey, legacySel);
+          localStorage.removeItem(BASE_SEL);
         }
       } catch(_) {}
-    })();
+    }
+
+    migrateLegacy();
 
     let cards = load();
     let selectedId = loadSelected();
 
     window.addEventListener('auth:changed', () => {
+      migrateLegacy();
       cards = load();
       selectedId = loadSelected();
       render();
@@ -118,6 +157,25 @@
 
     function render(){
       if (!gridEl || !viewerEl) return;
+      const email = getActiveEmail();
+      if (!email) {
+        if (gridEl) gridEl.style.display = 'none';
+        if (emptyEl) emptyEl.style.display = 'none';
+        if (actionsEl) actionsEl.style.display = 'none';
+        viewerEl.innerHTML = `
+          <div class="cards-viewer-empty">
+            <p class="cozy-hand" style="font-size:18px;margin-bottom:12px;">Sign in to access your card collection</p>
+            <button id="cards-signin" type="button" class="mint-primary">Sign In</button>
+          </div>`;
+        const btn = viewerEl.querySelector('#cards-signin');
+        btn?.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          window.AccountPanel?.open();
+        }, { once: true });
+        return;
+      }
+      if (gridEl) gridEl.style.display = '';
+      if (actionsEl) actionsEl.style.display = '';
       emptyEl.style.display = cards.length ? 'none' : 'block';
       if (cards.length && !cards.some(c => String(c.id) === String(selectedId))) {
         selectedId = String(cards[0].id || '');
@@ -443,7 +501,7 @@
   
     function addCard(payload, { open } = {}){
       if (!payload || !payload.id) return;
-      const owner = (getActiveEmail() || 'guest');
+      const owner = (getActiveEmail() || '');
       payload.ownerEmail = owner;
       cards.unshift(payload);
       save(cards);
