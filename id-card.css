@@ -141,6 +141,12 @@ body.theme-cozy-dark .scene-backdrop{
     100%{ transform: translateY(1px) rotateY(2deg) rotateX(0deg); }
 }
 
+@keyframes floatStraight {
+  0%{transform:translateY(1px)}
+  50%{transform:translateY(-8px)}
+  100%{transform:translateY(1px)}
+}
+
 /* rotate hint */
 .rotate-hint{
     position:absolute; top:10px; left:50%; transform:translateX(-50%);
@@ -156,7 +162,8 @@ body.theme-cozy-dark .scene-backdrop{
   60%  { transform: translateY(-4px) scale(1.04) rotateY(20deg);   opacity: 1; }
   100% { transform: translateY(0) scale(1) rotateY(0deg); }
 }
-#mint-overlay .id-card { margin: 8px auto; width: 300px; height: 400px; }
+#mint-overlay .id-card { margin: 8px auto; width: 300px; height: 400px; animation:none; }
 #mint-overlay .id-card.mint-appear {
-  animation: mintPopSpin 700ms cubic-bezier(.2,.8,.2,1) both, float 6s ease-in-out 700ms infinite alternate;
+  animation: mintPopSpin 700ms cubic-bezier(.2,.8,.2,1) both,
+             floatStraight 6s ease-in-out 700ms infinite alternate;
 }
