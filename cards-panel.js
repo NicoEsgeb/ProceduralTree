@@ -242,9 +242,11 @@
 
     function handleExport() {
       const card = getSelectedCard();
-      if (!card || !card.png) return;
+      if (!card) return;
+      const href = card.pngHd || card.png;
+      if (!href) return;
       const a = document.createElement('a');
-      a.href = card.png;
+      a.href = href;
       const safe = (card.title || 'card').replace(/[\\/:*?"<>|]+/g, '_');
       a.download = `${safe || 'card'}.png`;
       document.body.appendChild(a);

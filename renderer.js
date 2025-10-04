@@ -2291,13 +2291,15 @@ window.TimerPanel?.ensureFab?.();
   // Use the transparent snapshot instead of copying the live canvas
   window.addEventListener('study:focus-complete', (e) => {
     const title = (e && e.detail && e.detail.title) ? String(e.detail.title) : 'Untitled Session';
-    const png = makeTransparentTreePNG(300, 400, 20);
-    if (!png) return;
+    const previewPng = makeTransparentTreePNG(300, 400, 20);
+    if (!previewPng) return;
+    const hdPng = makeTransparentTreePNG(900, 1200, 40);
 
     const payload = {
       id: makeId(),
       title,
-      png,
+      png: previewPng,
+      pngHd: hdPng || null,
       seed: (window.clickTree?.settings?.seed ?? ''),
       createdAt: new Date().toISOString()
     };
