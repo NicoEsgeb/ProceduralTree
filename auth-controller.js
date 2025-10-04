@@ -26,6 +26,14 @@ let state = {
     } catch (error) {
         console.warn('ClickTree auth state could not be saved', error);
       }
+    try {
+      window.dispatchEvent(new CustomEvent('auth:changed', {
+        detail: {
+          user: state.user,
+          lastSyncAt: state.lastSyncAt
+        }
+      }));
+    } catch (_) {}
   }
   
   export async function initializeAuth() {

@@ -1,7 +1,12 @@
 (function(){
     const PANEL_ID = 'cards';
-    const LS_KEY = 'CardInventory.v1';
-    const LS_SELECTED = 'CardInventory.selectedId.v1';
+    const BASE_INV = 'CardInventory.v1';
+    const BASE_SEL = 'CardInventory.selectedId.v1';
+    function getActiveEmail(){
+      try { return (JSON.parse(localStorage.getItem('ClickTreeAccount'))?.user?.email || '').toLowerCase(); } catch(_) { return ''; }
+    }
+    function invKey(){ const e = getActiveEmail() || 'guest'; return `${BASE_INV}::${e}`; }
+    function selKey(){ const e = getActiveEmail() || 'guest'; return `${BASE_SEL}::${e}`; }
   
     let panel, gridEl, emptyEl, closeBtn, viewerEl;
     let navWired = false;
@@ -67,13 +72,32 @@
     }
   
     function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-    function load(){ try { return JSON.parse(localStorage.getItem(LS_KEY))||[]; } catch(_) { return []; } }
-    function save(list){ try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch(_) {} }
-    function loadSelected(){ try { return localStorage.getItem(LS_SELECTED)||''; } catch(_) { return ''; } }
-    function saveSelected(id){ try { localStorage.setItem(LS_SELECTED, id||''); } catch(_) {} }
+    function load(){ try { return JSON.parse(localStorage.getItem(invKey()))||[]; } catch(_) { return []; } }
+    function save(list){ try { localStorage.setItem(invKey(), JSON.stringify(list)); } catch(_) {} }
+    function loadSelected(){ try { return localStorage.getItem(selKey())||''; } catch(_) { return ''; } }
+    function saveSelected(id){ try { localStorage.setItem(selKey(), id||''); } catch(_) {} }
+
+    (function migrateLegacy(){
+      try {
+        const legacy = localStorage.getItem(BASE_INV);
+        if (legacy && !localStorage.getItem(invKey())) {
+          localStorage.setItem(invKey(), legacy);
+        }
+        const legacySel = localStorage.getItem(BASE_SEL);
+        if (legacySel && !localStorage.getItem(selKey())) {
+          localStorage.setItem(selKey(), legacySel);
+        }
+      } catch(_) {}
+    })();
 
     let cards = load();
     let selectedId = loadSelected();
+
+    window.addEventListener('auth:changed', () => {
+      cards = load();
+      selectedId = loadSelected();
+      render();
+    });
 
     function render(){
       if (!gridEl || !viewerEl) return;
