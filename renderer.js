@@ -903,11 +903,11 @@ function createNewTreeData(x, y, uvFromCaller) {
     }
   }
 
-  // Cap treeScale to stage height
-  const maxScale = tree.stageHeight / (13 * treeData.fullDepth);
-  if (treeData.treeScale > maxScale) {
-    treeData.treeScale = maxScale;
-  }
+  // Cap treeScale by *available headroom* above planting point,
+  // so the tree never grows outside the top of the canvas.
+  const headroom = Math.max(24, Math.floor(spawn.y)); // px from top to planting Y
+  const maxScale = headroom / (13 * treeData.fullDepth);
+  treeData.treeScale = Math.min(treeData.treeScale, Math.max(0.15, maxScale));
 
   // Pre-generate structure
   treeData.branches = Array.from({ length: treeData.fullDepth }, () => []);
@@ -2176,7 +2176,8 @@ window.TimerPanel?.ensureFab?.();
 // === Study Timer integration: auto-grow a centered tree during Focus ===
 (function(){
   // Choose the visual center in canvas UV space (0..1). Adjust if you prefer.
-  const CENTER_UV = { u: 0.5, v: 0.5, space: 'canvas' };
+  // const CENTER_UV = { u: 0.5, v: 0.5, space: 'canvas' };
+  const CENTER_UV = { u: 0.5, v: 0.88, space: 'canvas' };
   const FPS = 60;         // rAF target; good enough for pacing
   const FRAME_PER_DEPTH = 100; // each depth layer uses 0..100 "frames"
 
@@ -2259,7 +2260,12 @@ window.TimerPanel?.ensureFab?.();
         }
       }
       if (!found) return null;
-
+      // Inflate crop box slightly to avoid 1px clipping from AA
+      const padPx = Math.round((tree.pixelRatio || 1) * 6);
+      minX = Math.max(0, minX - padPx);
+      minY = Math.max(0, minY - padPx);
+      maxX = Math.min(src.width  - 1, maxX + padPx);
+      maxY = Math.min(src.height - 1, maxY + padPx);
       const cw = maxX - minX + 1;
       const ch = maxY - minY + 1;
 
@@ -2289,12 +2295,11 @@ window.TimerPanel?.ensureFab?.();
   }
 
   // Use the transparent snapshot instead of copying the live canvas
-  window.addEventListener('study:focus-complete', (e) => {
+  window.addEventListener('study:cycle-complete', (e) => {
     const title = (e && e.detail && e.detail.title) ? String(e.detail.title) : 'Untitled Session';
     const previewPng = makeTransparentTreePNG(300, 400, 20);
     if (!previewPng) return;
     const hdPng = makeTransparentTreePNG(900, 1200, 40);
-
     const payload = {
       id: makeId(),
       title,
@@ -2303,9 +2308,6 @@ window.TimerPanel?.ensureFab?.();
       seed: (window.clickTree?.settings?.seed ?? ''),
       createdAt: new Date().toISOString()
     };
-
-    try {
-      window.dispatchEvent(new CustomEvent('cards:new', { detail: payload }));
-    } catch (_) {}
+    window.dispatchEvent(new CustomEvent('cards:new', { detail: payload }));
   });
 })();

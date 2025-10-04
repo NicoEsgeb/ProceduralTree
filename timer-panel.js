@@ -267,6 +267,13 @@
       return;
     }
 
+    // If we're sitting at the end of Break (cycle finished), reset to Learn
+    if (currentPhaseIndex === PHASES.length - 1 && remainingSeconds <= 0) {
+      currentPhaseIndex = 0;
+      remainingSeconds = PHASES[0].duration;
+      updateTimerUI();
+    }
+
     isRunning = true;
     if (intervalId) clearInterval(intervalId);
     intervalId = window.setInterval(tick, 1000);
@@ -321,7 +328,8 @@
     if (nextIndex >= PHASES.length) {
       pauseTimer();
       emitTimerEvent('study:cycle-complete', { title: readSessionTitle() });
-      // Leave UI showing the finished Break at 00:00
+      currentPhaseIndex = 0;
+      remainingSeconds = PHASES[0].duration;
       updateTimerUI();
       return;
     }
