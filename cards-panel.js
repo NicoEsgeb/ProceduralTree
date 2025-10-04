@@ -77,6 +77,7 @@
           <div class="card-inner">
             <div class="card-front">
               <div class="character-container">
+                <div class="scene-backdrop" aria-hidden="true"></div>
                 <div class="character-layer">
                   <img class="pixel-avatar" src="${png}" alt="${title}" />
                 </div>
