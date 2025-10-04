@@ -13,6 +13,10 @@ let emailEl;
 let avatarEl;
 let syncStatusEl;
 let syncPillEl;
+let statCardsEl;
+let statSeasonsEl;
+let statBadgesEl;
+let badgeEls;
 let errorEl;
 let configNoticeEl;
 let fabBtn;
@@ -21,6 +25,14 @@ let currentState = null;
 let supabaseHintShown = false;
 let openFallbackTimer = null;
 let registeredWithManager = false;
+let cardsObserverAttached = false;
+
+const CARD_INVENTORY_PREFIX = 'CardInventory.v1::';
+const BADGE_THRESHOLDS = {
+  sprout: 1,
+  grove: 5,
+  keeper: 10,
+};
 
 function updateFabVisual(user) {
   const btn = fabBtn || document.getElementById('account-fab');
@@ -139,12 +151,60 @@ function ensurePanel() {
         </div>
         <p class="account-footnote">We'll launch your default browser for the secure Google login.</p>
       </section>
-      <section class="account-card" id="account-signed-in" hidden>
-        <div class="account-profile">
-          <div class="account-avatar" id="account-avatar">•</div>
-          <div>
+      <section class="account-card account-card-profile" id="account-signed-in" hidden>
+        <div class="account-profile-header">
+          <div class="account-avatar-ring" aria-hidden="true">
+            <span class="account-avatar-glow"></span>
+            <div class="account-avatar" id="account-avatar">•</div>
+          </div>
+          <div class="account-profile-copy">
+            <span class="account-profile-label">Logged in as</span>
             <div class="account-email" id="account-email"></div>
-            <div class="account-meta">Connected with Google</div>
+            <div class="account-meta">Tending the grove with Google</div>
+          </div>
+          <span class="account-profile-pill" id="account-sync-pill">Signed in</span>
+        </div>
+        <div class="account-profile-stats" role="list">
+          <div class="account-stat" role="listitem">
+            <span class="account-stat-value" id="account-stat-cards">0</span>
+            <span class="account-stat-label">Cards in your grove</span>
+          </div>
+          <div class="account-stat" role="listitem">
+            <span class="account-stat-value" id="account-stat-seasons">0</span>
+            <span class="account-stat-label">Seasons of focus</span>
+          </div>
+          <div class="account-stat" role="listitem">
+            <span class="account-stat-value" id="account-stat-badges">0</span>
+            <span class="account-stat-label">Badges unlocked</span>
+          </div>
+        </div>
+        <div class="account-badges-block">
+          <h4 class="account-section-title">Badge shelf</h4>
+          <div class="account-badges" role="list">
+            <div class="account-badge" data-badge="sprout" role="listitem">
+              <span class="account-badge-icon" aria-hidden="true">🌱</span>
+              <div class="account-badge-info">
+                <span class="account-badge-title">First Sprout</span>
+                <span class="account-badge-desc">Collect your first card.</span>
+              </div>
+              <span class="account-badge-state">Locked</span>
+            </div>
+            <div class="account-badge" data-badge="grove" role="listitem">
+              <span class="account-badge-icon" aria-hidden="true">🌳</span>
+              <div class="account-badge-info">
+                <span class="account-badge-title">Growing Grove</span>
+                <span class="account-badge-desc">Gather five cards to fill your grove.</span>
+              </div>
+              <span class="account-badge-state">Locked</span>
+            </div>
+            <div class="account-badge" data-badge="keeper" role="listitem">
+              <span class="account-badge-icon" aria-hidden="true">🦉</span>
+              <div class="account-badge-info">
+                <span class="account-badge-title">Night Keeper</span>
+                <span class="account-badge-desc">Hold onto ten cards across your sessions.</span>
+              </div>
+              <span class="account-badge-state">Locked</span>
+            </div>
           </div>
         </div>
         <div class="account-sync-card">
@@ -153,7 +213,6 @@ function ensurePanel() {
               <div class="account-sync-title">Cloud presets</div>
               <div class="account-sync-status" id="account-sync-status">Last synced: never</div>
             </div>
-            <span class="account-sync-pill" id="account-sync-pill">Signed in</span>
           </div>
           <div class="account-sync-actions">
             <button id="account-sync-btn" type="button" class="account-secondary-btn">
@@ -183,6 +242,10 @@ function ensurePanel() {
   avatarEl = panel.querySelector('#account-avatar');
   syncStatusEl = panel.querySelector('#account-sync-status');
   syncPillEl = panel.querySelector('#account-sync-pill');
+  statCardsEl = panel.querySelector('#account-stat-cards');
+  statSeasonsEl = panel.querySelector('#account-stat-seasons');
+  statBadgesEl = panel.querySelector('#account-stat-badges');
+  badgeEls = panel.querySelectorAll('.account-badge');
   errorEl = panel.querySelector('#account-error');
   configNoticeEl = panel.querySelector('#account-config-warning');
 
@@ -196,6 +259,20 @@ function ensurePanel() {
       AccountPanel.close();
     }
   });
+
+  if (!cardsObserverAttached) {
+    const refreshStats = () => {
+      const email = currentState?.user?.email;
+      if (email) updateProfileStats(email);
+    };
+    window.addEventListener('cards:new', refreshStats);
+    window.addEventListener('storage', (event) => {
+      if (typeof event?.key === 'string' && event.key.startsWith(CARD_INVENTORY_PREFIX)) {
+        refreshStats();
+      }
+    });
+    cardsObserverAttached = true;
+  }
 
   return panel;
 }
@@ -231,6 +308,68 @@ function updateAvatar(email) {
   }
   const initial = email.trim().charAt(0).toUpperCase();
   avatarEl.textContent = initial || '•';
+}
+
+function readCardInventory(email) {
+  if (!email) return [];
+  try {
+    const key = `${CARD_INVENTORY_PREFIX}${email.toLowerCase()}`;
+    const storage = typeof window !== 'undefined' ? window.localStorage : null;
+    const raw = storage?.getItem?.(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed && Array.isArray(parsed.items)) return parsed.items;
+    return [];
+  } catch (error) {
+    console.warn('Unable to read card inventory', error);
+    return [];
+  }
+}
+
+function applyBadgeStates(cardCount) {
+  if (!badgeEls?.length) return 0;
+  let unlocked = 0;
+  badgeEls.forEach((badge) => {
+    const slug = badge.dataset?.badge || '';
+    const threshold = BADGE_THRESHOLDS[slug] ?? Infinity;
+    const isUnlocked = Number.isFinite(threshold) && cardCount >= threshold;
+    badge.dataset.state = isUnlocked ? 'unlocked' : 'locked';
+    if (isUnlocked) unlocked += 1;
+    const stateEl = badge.querySelector('.account-badge-state');
+    if (stateEl) {
+      if (isUnlocked) {
+        stateEl.textContent = 'Unlocked';
+      } else if (Number.isFinite(threshold)) {
+        const remaining = Math.max(0, threshold - cardCount);
+        stateEl.textContent = remaining ? `Locked · ${remaining} to go` : 'Locked';
+      } else {
+        stateEl.textContent = 'Locked';
+      }
+    }
+  });
+  return unlocked;
+}
+
+function updateProfileStats(email) {
+  if (!email) {
+    if (statCardsEl) statCardsEl.textContent = '0';
+    if (statSeasonsEl) statSeasonsEl.textContent = '0';
+    if (statBadgesEl) statBadgesEl.textContent = '0';
+    badgeEls?.forEach((badge) => {
+      badge.dataset.state = 'locked';
+      const stateEl = badge.querySelector('.account-badge-state');
+      if (stateEl) stateEl.textContent = 'Locked';
+    });
+    return;
+  }
+  const cards = readCardInventory(email);
+  const cardCount = cards.length;
+  if (statCardsEl) statCardsEl.textContent = String(cardCount);
+  const seasons = cardCount ? Math.max(1, Math.ceil(cardCount / 3)) : 0;
+  if (statSeasonsEl) statSeasonsEl.textContent = String(seasons);
+  const unlocked = applyBadgeStates(cardCount);
+  if (statBadgesEl) statBadgesEl.textContent = String(unlocked);
 }
 
 function setBusy(el, busy, busyText) {
@@ -278,6 +417,9 @@ function render(state) {
       syncPillEl.textContent = state.isSyncing ? 'Syncing…' : 'Signed in';
       syncPillEl.dataset.status = state.isSyncing ? 'syncing' : 'idle';
     }
+    updateProfileStats(email);
+  } else {
+    updateProfileStats('');
   }
 
   const supabaseIssue = !!state.supabaseError;
