@@ -44,23 +44,20 @@
       panel.addEventListener('keydown', (e) => { if (e.key === 'Escape') CardsPanel.close(); });
       function wireHoverLight(){
         if (!gridEl || gridEl.dataset.hoverLightWired) return;
-        const setGlow = (el, x, y) => {
+        const setLightPos = (el, x, y) => {
           const r = el.getBoundingClientRect();
           el.style.setProperty('--mx', ((x - r.left) / r.width * 100) + '%');
           el.style.setProperty('--my', ((y - r.top) / r.height * 100) + '%');
-          el.style.setProperty('--glow', '1');
         };
         gridEl.addEventListener('pointermove', (e) => {
           const t = e.target.closest('.card-thumb'); if (!t) return;
-          setGlow(t, e.clientX, e.clientY);
+          setLightPos(t, e.clientX, e.clientY);
         });
-        gridEl.addEventListener('pointerenter', (e) => {
-          const t = e.target.closest('.card-thumb'); if (!t) return;
-          t.style.setProperty('--glow', '1');
-        }, true);
         gridEl.addEventListener('pointerleave', (e) => {
           const t = e.target.closest('.card-thumb'); if (!t) return;
-          t.style.setProperty('--glow', '0');
+          t.style.removeProperty('--glow');
+          t.style.removeProperty('--mx');
+          t.style.removeProperty('--my');
         }, true);
         gridEl.dataset.hoverLightWired = '1';
       }
