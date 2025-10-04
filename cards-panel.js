@@ -66,13 +66,25 @@
       renderViewer();
     }
 
+    function seedHue(seed){
+      const input = String(seed || '');
+      if (!input) return 160;
+      let hash = 0;
+      for (let i = 0; i < input.length; i++) {
+        hash = ((hash * 31) + input.charCodeAt(i)) >>> 0;
+      }
+      return hash % 360;
+    }
+
     function renderBigCard(card){
       const title = escapeHtml(card.title || 'Study Session');
       const png = escapeHtml(card.png || '');
       const when = card.createdAt ? new Date(card.createdAt).toLocaleString() : '';
       const seed = escapeHtml(String(card.seed ?? ''));
+      const hueInput = card.seed || card.id || card.title;
+      const accentHue = seedHue(hueInput);
       return `
-        <article class="id-card" data-id="${escapeHtml(card.id||'')}" title="${title}" style="margin:12px auto">
+        <article class="id-card" data-id="${escapeHtml(card.id||'')}" title="${title}" style="margin:12px auto; --accent-hue:${accentHue};">
           <div class="rotate-hint"><span class="arrow">↔</span>Drag to rotate • Double-click to flip</div>
           <div class="card-inner">
             <div class="card-front">
@@ -109,10 +121,13 @@
         const title = escapeHtml(card.title||'');
         const png = escapeHtml(card.png||'');
         const selected = (id === selectedId) ? ' selected' : '';
+        const hueInput = card.seed || card.id || card.title;
+        const accentHue = seedHue(hueInput);
         return `
       <button class="card-thumb${selected}" role="listitem"
               data-id="${id}" title="${title}"
-              aria-selected="${selected ? 'true' : 'false'}">
+              aria-selected="${selected ? 'true' : 'false'}"
+              style="--accent-hue:${accentHue};">
         <div class="thumb-inner" aria-hidden="true"></div>
         ${png ? `<img class="thumb-img" src="${png}" alt="${title} thumbnail" loading="lazy">` : ''}
         <img class="thumb-frame" src="./assets/CardImages/3dLayer.png" alt="" aria-hidden="true">

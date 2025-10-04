@@ -395,7 +395,25 @@ body.cozy-theme .panel-shell {
     cursor: pointer;
     transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
     outline: none;
+    --accent-hue: 160;
   }
+
+#cards-panel .card-thumb::after{
+  content:""; position:absolute; inset:6px; border-radius:10px; padding:2px; z-index:4; pointer-events:none;
+  background:
+    conic-gradient(from var(--spin,0deg) at 50% 50%,
+      hsl(var(--accent-hue) 85% 62% / .9),
+      hsl(calc(var(--accent-hue)+120) 85% 62% / .9),
+      hsl(calc(var(--accent-hue)+240) 85% 62% / .9),
+      hsl(var(--accent-hue) 85% 62% / .9));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity:.9; animation:holoSpin 10s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce){
+  #cards-panel .card-thumb::after{ animation:none; }
+}
 
   /* Inner “well” for thumbs, matching the big card */
   #cards-panel .card-thumb .thumb-inner{
