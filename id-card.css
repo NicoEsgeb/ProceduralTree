@@ -48,8 +48,8 @@
   transform: translateZ(10px);
 }
 
-/* Light/Cozy theme variant */
-body.cozy-theme .scene-backdrop{
+/* Light/Cozy variant — only when cozy *light* is active */
+body.theme-cozy-light .scene-backdrop{
   background:
     radial-gradient(120% 120% at 28% 18%, rgba(154,209,212,0.15), transparent 60%),
     linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.78));
@@ -57,6 +57,17 @@ body.cozy-theme .scene-backdrop{
     0 18px 36px rgba(27,19,28,0.22),
     inset 0 1px 0 rgba(255,255,255,0.35),
     inset 0 -1px 0 rgba(0,0,0,0.06);
+}
+
+/* Cozy *dark* gets a foggy, dark well */
+body.theme-cozy-dark .scene-backdrop{
+  background:
+    radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,0.05), transparent 60%),
+    linear-gradient(180deg, rgba(22,24,28,0.92), rgba(18,19,23,0.96));
+  box-shadow:
+    0 14px 34px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    inset 0 -1px 0 rgba(0,0,0,0.35);
 }
 
 .card-back{ transform: rotateY(180deg); }

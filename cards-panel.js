@@ -113,6 +113,7 @@
       <button class="card-thumb${selected}" role="listitem"
               data-id="${id}" title="${title}"
               aria-selected="${selected ? 'true' : 'false'}">
+        <div class="thumb-inner" aria-hidden="true"></div>
         ${png ? `<img class="thumb-img" src="${png}" alt="${title} thumbnail" loading="lazy">` : ''}
         <img class="thumb-frame" src="./assets/CardImages/3dLayer.png" alt="" aria-hidden="true">
       </button>
