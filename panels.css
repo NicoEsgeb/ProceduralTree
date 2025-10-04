@@ -397,6 +397,11 @@ body.cozy-theme .panel-shell {
   }
   #cards-panel .cards-empty { padding: 12px 16px; }
   #cards-panel .card-thumb {
+    --mx: 50%;
+    --my: 50%;
+    --glow: 0;
+    --glow-a: rgba(196,154,204,0.45);
+    --glow-b: rgba(154,209,212,0.35);
     position: relative;
     width: 100%;
     aspect-ratio: 3 / 4;          /* stable proportions */
@@ -409,6 +414,23 @@ body.cozy-theme .panel-shell {
     transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
     outline: none;
     --accent-hue: 160;
+    isolation: isolate;
+  }
+
+  #cards-panel .card-thumb::before{
+    content:"";
+    position:absolute;
+    inset:-20%;
+    pointer-events:none;
+    z-index:2;
+    background:
+      radial-gradient(40% 32% at var(--mx) var(--my), var(--glow-a), transparent 60%),
+      radial-gradient(70% 50% at calc(var(--mx) + 8%) calc(var(--my) + 8%), var(--glow-b), transparent 70%);
+    opacity: var(--glow);
+    filter: blur(16px) saturate(1.05);
+    mix-blend-mode: soft-light;
+    transition: opacity .24s ease, transform .24s ease;
+    transform: translateZ(0);
   }
 
 #cards-panel .card-thumb::after{
@@ -495,6 +517,11 @@ body.cozy-theme .panel-shell {
     color: var(--cozy-ink);
   }
 
+  body.theme-cozy-light #cards-panel .card-thumb::before{
+    mix-blend-mode: multiply;
+    filter: blur(16px) saturate(0.98);
+  }
+
   /* Cozy DARK — Inventory */
   body.theme-cozy-dark #cards-panel .cards-title {
     font-family: var(--heading-font-family);
@@ -531,6 +558,11 @@ body.cozy-theme .panel-shell {
   body.theme-cozy-dark #cards-panel .card-thumb .t { color: var(--cozy-dark-text); }
   body.theme-cozy-dark #cards-panel .card-thumb .m { color: var(--cozy-dark-soft-muted); }
 
+  body.theme-cozy-dark #cards-panel .card-thumb::before{
+    filter: blur(18px) saturate(1.1);
+    opacity: calc(var(--glow) * 0.95);
+  }
+
 
   #cards-panel .card-thumb .thumb-img {
     position: absolute;
@@ -562,6 +594,11 @@ body.cozy-theme .panel-shell {
   #cards-panel .card-thumb:focus {
     transform: translateY(-2px);
     box-shadow: 0 0 0 4px rgba(45,130,255,0.55), 0 12px 30px rgba(0,0,0,0.55);
+  }
+  #cards-panel .card-thumb:focus-visible{
+    --glow: 0.9;
+    --mx: 50%;
+    --my: 30%;
   }
   #cards-panel .card-thumb.selected {
     box-shadow: 0 0 0 4px rgba(45,130,255,0.55), 0 12px 30px rgba(0,0,0,0.55);
