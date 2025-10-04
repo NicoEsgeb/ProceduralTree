@@ -72,7 +72,24 @@
     }
   
     function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-    function load(){ try { return JSON.parse(localStorage.getItem(invKey()))||[]; } catch(_) { return []; } }
+    function load(){
+      try {
+        const data = JSON.parse(localStorage.getItem(invKey())) || [];
+        if (!Array.isArray(data)) return [];
+        const owner = getActiveEmail() || 'guest';
+        let changed = false;
+        const normalized = data.map((item) => {
+          if (!item || typeof item !== 'object') return item;
+          if (item.ownerEmail) return item;
+          changed = true;
+          return { ...item, ownerEmail: owner };
+        });
+        if (changed) save(normalized);
+        return normalized;
+      } catch(_) {
+        return [];
+      }
+    }
     function save(list){ try { localStorage.setItem(invKey(), JSON.stringify(list)); } catch(_) {} }
     function loadSelected(){ try { return localStorage.getItem(selKey())||''; } catch(_) { return ''; } }
     function saveSelected(id){ try { localStorage.setItem(selKey(), id||''); } catch(_) {} }
@@ -152,6 +169,7 @@
               <div class="back-letters info cozy-hand" style="padding:16px">
                 <div style="margin-bottom:6px">${escapeHtml(when)}</div>
                 <div>Seed: ${seed}</div>
+                <div>Owner: ${escapeHtml(card.ownerEmail || 'guest')}</div>
               </div>
             </div>
           </div>
@@ -425,6 +443,8 @@
   
     function addCard(payload, { open } = {}){
       if (!payload || !payload.id) return;
+      const owner = (getActiveEmail() || 'guest');
+      payload.ownerEmail = owner;
       cards.unshift(payload);
       save(cards);
       selectedId = String(payload.id);
