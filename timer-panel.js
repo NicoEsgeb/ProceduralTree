@@ -73,57 +73,206 @@
     if (!panel) {
       const el = document.createElement('aside');
       el.id = 'timer-panel';
-      el.classList.add('panel-shell');
+      el.classList.add('panel-shell', 'account-panel');
       el.setAttribute('aria-hidden', 'true');
       el.innerHTML = `
-        <header class="panel-topbar timer-topbar">
+        <header class="panel-topbar account-topbar">
           <div class="timer-title">Study Timer</div>
           <div class="timer-actions">
-            <button id="timer-reset" type="button">Reset Cycle</button>
-            <button id="timer-close" class="timer-close" type="button" aria-label="Close study timer">✕</button>
+            <button id="timer-reset" class="account-tertiary-btn" type="button">Reset Cycle</button>
+            <button id="timer-close" class="account-close" type="button" aria-label="Close study timer">✕</button>
           </div>
         </header>
-        <main class="panel-content timer-main">
-          <section class="timer-hero" aria-labelledby="timer-phase-title">
-            <div class="timer-phase-meta">
-              <span class="timer-phase-badge" id="timer-phase-badge"></span>
-              <span id="timer-phase-meta" aria-live="polite"></span>
-            </div>
-            <div class="timer-phase-title" id="timer-phase-title"></div>
-            <div class="timer-phase-subtitle" id="timer-phase-subtitle"></div>
-            <div class="timer-countdown" id="timer-countdown" aria-live="assertive">30:00</div>
-            <div class="timer-progress-track" role="presentation">
-              <div class="timer-progress-bar" id="timer-progress-bar"></div>
-            </div>
-            <div class="timer-session-row">
-              <input id="timer-session-title" type="text" maxlength="80"
-                     placeholder="Name this session (e.g., 'CNF practice')"
-                     aria-label="Study session title" />
-            </div>
-            <div class="timer-controls">
-              <button id="timer-start" type="button">Start</button>
-              <button id="timer-skip" type="button" class="secondary">Skip Phase</button>
-            </div>
-            <div class="timer-cycle" id="timer-cycle" aria-label="Timer cycle"></div>
-          </section>
-          <section class="timer-todo-section" aria-labelledby="timer-todo-title">
-            <div class="timer-todo-header">
-              <div class="timer-todo-title" id="timer-todo-title">Focus Plan</div>
-            </div>
-            <form class="timer-todo-form" id="timer-todo-form">
-              <input id="timer-todo-input" type="text" autocomplete="off" placeholder="Add a task or intention..." aria-label="Add task" />
-              <button type="submit">Add</button>
-            </form>
-            <div class="timer-todo-list" id="timer-todo-list" role="list"></div>
-            <div class="timer-empty" id="timer-empty" role="status" hidden>No tasks yet. Sketch your focus plan.</div>
-          </section>
+        <main class="panel-content account-main">
+          <div class="account-stack">
+            <section class="timer-hero account-card account-card-cozy" aria-labelledby="timer-phase-title">
+              <div class="account-profile-hero timer-focus-hero">
+                <div class="timer-phase-meta">
+                  <span class="timer-phase-badge account-pill" id="timer-phase-badge"></span>
+                  <span id="timer-phase-meta" aria-live="polite"></span>
+                </div>
+                <div class="timer-phase-title" id="timer-phase-title"></div>
+                <div class="timer-phase-subtitle" id="timer-phase-subtitle"></div>
+                <div class="timer-countdown" id="timer-countdown" aria-live="assertive">30:00</div>
+                <div class="timer-progress-track" role="presentation">
+                  <div class="timer-progress-bar" id="timer-progress-bar"></div>
+                </div>
+                <div class="timer-session-row">
+                  <input id="timer-session-title" type="text" maxlength="80"
+                         placeholder="Name this session (e.g., 'CNF practice')"
+                         aria-label="Study session title" />
+                </div>
+              </div>
+              <div class="timer-controls">
+                <button id="timer-start" class="account-primary-btn" type="button">Start</button>
+                <button id="timer-skip" class="account-tertiary-btn" type="button">Skip Phase</button>
+              </div>
+              <div class="timer-cycle-block account-badges-block">
+                <h4 class="account-section-title">Study Phase</h4>
+                <div class="timer-cycle account-badges" id="timer-cycle" role="list" aria-label="Study phases"></div>
+              </div>
+            </section>
+            <section class="timer-todo-section account-card account-card-cozy" aria-labelledby="timer-todo-title">
+              <div class="timer-todo-header">
+                <div class="timer-todo-title" id="timer-todo-title">Focus Plan</div>
+              </div>
+              <form class="timer-todo-form" id="timer-todo-form">
+                <input id="timer-todo-input" type="text" autocomplete="off" placeholder="Add a task or intention..." aria-label="Add task" />
+                <button type="submit" class="account-primary-btn">Add</button>
+              </form>
+              <div class="timer-todo-list" id="timer-todo-list" role="list"></div>
+              <div class="timer-empty" id="timer-empty" role="status" hidden>No tasks yet. Sketch your focus plan.</div>
+            </section>
+          </div>
         </main>
-        <footer class="timer-footer">Dual-lane rhythm: ${CYCLE_TAGLINE}</footer>
+        <footer class="account-footnote timer-footer">Dual-lane rhythm: ${CYCLE_TAGLINE}</footer>
       `;
       document.body.appendChild(el);
       panel = el;
-    } else if (!panel.classList.contains('panel-shell')) {
-      panel.classList.add('panel-shell');
+    } else {
+      if (!panel.classList.contains('panel-shell')) {
+        panel.classList.add('panel-shell');
+      }
+      if (!panel.classList.contains('account-panel')) {
+        panel.classList.add('account-panel');
+      }
+
+      const header = panel.querySelector('header');
+      if (header) {
+        header.classList.remove('timer-topbar');
+        header.classList.add('panel-topbar', 'account-topbar');
+      }
+
+      const mainSection = panel.querySelector('main');
+      if (mainSection) {
+        mainSection.classList.remove('timer-main');
+        mainSection.classList.add('panel-content', 'account-main');
+
+        let stack = mainSection.querySelector('.account-stack');
+        if (!stack) {
+          stack = document.createElement('div');
+          stack.classList.add('account-stack');
+          const sections = Array.from(mainSection.querySelectorAll('section'));
+          sections.forEach((section) => stack.appendChild(section));
+          mainSection.insertBefore(stack, mainSection.firstChild);
+        }
+
+        const heroSection = mainSection.querySelector('.timer-hero');
+        if (heroSection) {
+          heroSection.classList.add('account-card', 'account-card-cozy');
+          const badge = heroSection.querySelector('#timer-phase-badge');
+          badge?.classList.add('account-pill');
+
+          let focusShell = heroSection.querySelector('.timer-focus-hero');
+          if (!focusShell) {
+            focusShell = document.createElement('div');
+            focusShell.classList.add('account-profile-hero', 'timer-focus-hero');
+            const insertionPoint = heroSection.querySelector('.timer-phase-meta') || heroSection.firstChild;
+            heroSection.insertBefore(focusShell, insertionPoint);
+
+            const wrapSelectors = [
+              '.timer-phase-meta',
+              '.timer-phase-title',
+              '.timer-phase-subtitle',
+              '.timer-countdown',
+              '.timer-progress-track',
+              '.timer-session-row'
+            ];
+            wrapSelectors.forEach((selector) => {
+              const node = heroSection.querySelector(selector);
+              if (node && node !== focusShell) {
+                focusShell.appendChild(node);
+              }
+            });
+          } else {
+            focusShell.classList.add('account-profile-hero');
+          }
+        }
+
+        const todoSection = mainSection.querySelector('.timer-todo-section');
+        if (todoSection) {
+          todoSection.classList.add('account-card', 'account-card-cozy');
+        }
+      }
+
+      const footer = panel.querySelector('footer');
+      if (footer) {
+        footer.classList.add('account-footnote', 'timer-footer');
+      }
+
+      const resetButton = panel.querySelector('#timer-reset');
+      resetButton?.classList.add('account-tertiary-btn');
+
+      const closeButton = panel.querySelector('#timer-close');
+      if (closeButton) {
+        closeButton.classList.remove('timer-close');
+        closeButton.classList.add('account-close');
+      }
+
+      const startButton = panel.querySelector('#timer-start');
+      if (startButton) {
+        startButton.classList.add('account-primary-btn');
+      }
+
+      const skipButton = panel.querySelector('#timer-skip');
+      if (skipButton) {
+        skipButton.classList.remove('secondary');
+        skipButton.classList.add('account-tertiary-btn');
+      }
+
+      const addTodoButton = panel.querySelector('#timer-todo-form button[type="submit"]');
+      if (addTodoButton) {
+        addTodoButton.classList.add('account-primary-btn');
+      }
+
+      const cycleElExisting = panel.querySelector('#timer-cycle');
+      if (cycleElExisting) {
+        cycleElExisting.classList.add('timer-cycle', 'account-badges');
+        cycleElExisting.setAttribute('role', 'list');
+        cycleElExisting.setAttribute('aria-label', 'Study phases');
+
+        let cycleBlock = cycleElExisting.closest('.timer-cycle-block');
+        if (!cycleBlock) {
+          cycleBlock = document.createElement('div');
+          cycleBlock.classList.add('timer-cycle-block', 'account-badges-block');
+          const heading = document.createElement('h4');
+          heading.classList.add('account-section-title');
+          heading.textContent = 'Study Phase';
+          cycleBlock.appendChild(heading);
+          cycleElExisting.parentElement?.insertBefore(cycleBlock, cycleElExisting);
+          cycleBlock.appendChild(cycleElExisting);
+        } else {
+          cycleBlock.classList.add('account-badges-block');
+          const heading = cycleBlock.querySelector('.account-section-title');
+          if (heading) heading.textContent = 'Study Phase';
+          else {
+            const newHeading = document.createElement('h4');
+            newHeading.classList.add('account-section-title');
+            newHeading.textContent = 'Study Phase';
+            cycleBlock.insertBefore(newHeading, cycleBlock.firstChild);
+          }
+        }
+
+        const hasModernItems = cycleElExisting.querySelector('.account-badge');
+        if (!hasModernItems) {
+          cycleElExisting.innerHTML = '';
+        } else {
+          cycleElExisting.querySelectorAll('.timer-cycle-item').forEach((item) => {
+            item.classList.add('account-badge', 'timer-cycle-item');
+            item.classList.remove('account-card', 'account-card-cozy');
+            item.setAttribute('role', 'listitem');
+            if (!item.querySelector('.account-badge-state')) {
+              const stateSpan = document.createElement('span');
+              stateSpan.classList.add('account-badge-state', 'timer-cycle-state');
+              item.appendChild(stateSpan);
+            }
+          });
+        }
+      }
+
+      panel.querySelectorAll('.timer-todo-item').forEach((item) => {
+        item.classList.add('account-card', 'account-card-cozy');
+      });
     }
 
     cacheElements();
@@ -152,6 +301,8 @@
     todoListEl = panel.querySelector('#timer-todo-list');
     emptyStateEl = panel.querySelector('#timer-empty');
     sessionTitleInput = panel.querySelector('#timer-session-title');
+
+    phaseTitleEl?.classList.add('cozy-hand');
   }
 
   function wireEvents() {
@@ -214,21 +365,40 @@
 
   function buildCycle() {
     if (!cycleEl || cycleEl.childElementCount) return;
+    cycleEl.classList.add('timer-cycle', 'account-badges');
+    cycleEl.setAttribute('role', 'list');
+    cycleEl.setAttribute('aria-label', 'Study phases');
     PHASES.forEach((phase, index) => {
       const item = document.createElement('div');
-      item.className = 'timer-cycle-item';
+      item.className = 'account-badge timer-cycle-item';
       item.dataset.phaseIndex = String(index);
+      item.setAttribute('role', 'listitem');
 
-      const title = document.createElement('div');
-      title.className = 'timer-cycle-title';
-      title.textContent = `${index + 1}. ${phase.shortLabel}`;
+      const icon = document.createElement('span');
+      icon.className = 'account-badge-icon timer-cycle-icon';
+      icon.textContent = String(index + 1);
 
-      const sub = document.createElement('div');
-      sub.className = 'timer-cycle-duration';
+      const info = document.createElement('div');
+      info.className = 'account-badge-info';
+
+      const title = document.createElement('span');
+      title.className = 'account-badge-title timer-cycle-title';
+      title.textContent = phase.label;
+
+      const sub = document.createElement('span');
+      sub.className = 'account-badge-desc timer-cycle-duration';
       sub.textContent = `${minutesFor(phase.duration)} · ${phase.timeline}`;
 
-      item.appendChild(title);
-      item.appendChild(sub);
+      info.appendChild(title);
+      info.appendChild(sub);
+
+      const state = document.createElement('span');
+      state.className = 'account-badge-state timer-cycle-state';
+      state.textContent = 'Ready';
+
+      item.appendChild(icon);
+      item.appendChild(info);
+      item.appendChild(state);
       cycleEl.appendChild(item);
     });
   }
@@ -239,12 +409,16 @@
     const nextIndex = (currentPhaseIndex + 1) % PHASES.length;
     items.forEach((item) => {
       const idx = Number(item.dataset.phaseIndex || 0);
+      const stateLabel = item.querySelector('.timer-cycle-state');
       if (idx === currentPhaseIndex) {
         item.dataset.state = 'active';
+        if (stateLabel) stateLabel.textContent = 'Now';
       } else if (idx === nextIndex) {
         item.dataset.state = 'upnext';
+        if (stateLabel) stateLabel.textContent = 'Up next';
       } else {
         delete item.dataset.state;
+        if (stateLabel) stateLabel.textContent = 'Ready';
       }
     });
   }
@@ -461,7 +635,7 @@
 
     todos.forEach((todo) => {
       const item = document.createElement('div');
-      item.className = 'timer-todo-item';
+      item.className = 'timer-todo-item account-card account-card-cozy';
       item.dataset.id = todo.id;
       item.dataset.complete = todo.done ? 'true' : 'false';
 

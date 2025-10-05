@@ -24,62 +24,47 @@
     gap: 10px;
   }
   
-  .timer-actions button {
-    background: #1d2128;
-    color: var(--ytp-text);
-    border: 1px solid var(--ytp-border);
-    border-radius: 999px;
-    padding: 6px 14px;
-    cursor: pointer;
-  }
-  
-  .timer-actions button:hover { filter: brightness(1.08); }
-  .timer-actions button:focus { outline: none; box-shadow: var(--ytp-focus); }
-  
-  .timer-close {
-    background: transparent;
-    border: none;
-    color: var(--ytp-text-dim);
-    font-size: 20px;
-    line-height: 1;
-    cursor: pointer;
-  }
-  
-  .timer-close:hover { color: var(--ytp-text); }
-  .timer-close:focus { outline: none; box-shadow: var(--ytp-focus); }
-  
-  .timer-main {
-    flex: 1;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    background: linear-gradient(160deg, rgba(45,130,255,0.12), rgba(17,19,23,0.9));
-  }
-  
-  .timer-hero {
-    padding: 28px 24px 24px;
+  /* Timer hero inherits account card visuals */
+  #timer-panel .timer-hero{
     display: grid;
-    gap: 18px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    gap: 6px;
+    padding: clamp(10px, 2.6vw, 14px) clamp(12px, 2.4vw, 16px);
   }
+
+  .timer-focus-hero {
+    display: grid;
+    gap: clamp(12px, 3vw, 18px);
+  }
+
+  .timer-focus-hero .timer-countdown {
+    text-align: left;
+  }
+
+  .timer-focus-hero .timer-progress-track {
+    width: 100%;
+  }
+
+  body.theme-cozy-light #timer-panel .timer-hero{ }
   
   .timer-phase-meta {
     display: flex;
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
-    color: var(--ytp-text-dim);
+    color: color-mix(in srgb, var(--panel-text-color) 70%, rgba(214, 227, 230, 0.78));
     font-size: 13px;
   }
   
   .timer-phase-badge {
-    background: rgba(45,130,255,0.16);
-    color: #dbe7ff;
     padding: 4px 10px;
     border-radius: 999px;
     font-weight: 600;
     letter-spacing: 0.3px;
     text-transform: uppercase;
+    background: color-mix(in srgb, var(--input-background) 68%, rgba(148, 192, 178, 0.36));
+    color: color-mix(in srgb, var(--panel-text-color) 92%, rgba(244, 255, 253, 0.88));
+    border: 1px solid color-mix(in srgb, var(--input-border-color) 70%, transparent);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   }
   
   .timer-phase-title {
@@ -90,7 +75,7 @@
   
   .timer-phase-subtitle {
     font-size: 16px;
-    color: var(--ytp-text-dim);
+    color: color-mix(in srgb, var(--panel-text-color) 74%, rgba(222, 236, 240, 0.78));
     max-width: 80%;
   }
   
@@ -99,6 +84,8 @@
     font-weight: 700;
     letter-spacing: 2px;
     font-variant-numeric: tabular-nums;
+    color: color-mix(in srgb, var(--panel-text-color) 96%, rgba(244, 255, 253, 0.9));
+    text-shadow: 0 6px 20px rgba(10, 16, 24, 0.4);
   }
   
   .timer-progress-track {
@@ -106,7 +93,7 @@
     width: 100%;
     height: 10px;
     border-radius: 999px;
-    background: rgba(255,255,255,0.08);
+    background: color-mix(in srgb, var(--input-background) 70%, rgba(28, 36, 44, 0.65));
     overflow: hidden;
   }
   
@@ -117,15 +104,15 @@
     bottom: 0;
     width: 0;
     border-radius: inherit;
-    background: linear-gradient(90deg, rgba(45,130,255,0.9), rgba(95,189,255,0.9));
+    background: linear-gradient(90deg, rgba(148, 192, 178, 0.88), rgba(126, 176, 209, 0.9));
     transition: width 220ms ease;
   }
 
   #timer-panel .timer-session-row { margin-top: 10px; }
   #timer-session-title { width: 100%; }
   #timer-session-title.needs-title {
-    border-color: rgba(255, 80, 80, 0.6);
-    box-shadow: 0 0 0 3px rgba(255, 80, 80, 0.2);
+    border-color: rgba(247, 105, 105, 0.6);
+    box-shadow: var(--focus-ring-shadow, 0 0 0 3px rgba(247, 105, 105, 0.25));
   }
 
   .timer-controls {
@@ -135,62 +122,64 @@
     flex-wrap: wrap;
   }
   
-  .timer-controls button {
-    border-radius: 999px;
-    border: none;
-    cursor: pointer;
-    padding: 10px 24px;
-    font-weight: 600;
-    letter-spacing: 0.2px;
-    color: #0e1219;
-    background: #61c1ff;
-    box-shadow: 0 10px 28px rgba(45,130,255,0.22);
-  }
-  
-  .timer-controls button.secondary {
-    background: rgba(13,17,25,0.85);
-    color: var(--ytp-text);
-    border: 1px solid rgba(97, 193, 255, 0.4);
-    box-shadow: none;
-  }
-  
-  .timer-controls button:hover { filter: brightness(1.05); }
-  .timer-controls button:focus { outline: none; box-shadow: var(--ytp-focus); }
-  
   .timer-cycle {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
+    gap: 10px;
   }
-  
+
   .timer-cycle-item {
-    background: rgba(15,17,23,0.8);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: var(--ytp-radius);
-    padding: 12px 14px;
+    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  }
+
+  .timer-cycle-icon {
     display: grid;
-    gap: 6px;
-    color: var(--ytp-text-dim);
-    transition: border-color 180ms ease, transform 180ms ease;
+    place-items: center;
+    width: clamp(32px, 5vw, 38px);
+    height: clamp(32px, 5vw, 38px);
+    border-radius: 14px;
+    background: color-mix(in srgb, rgba(148, 192, 178, 0.45) 75%, rgba(32, 42, 50, 0.75));
+    color: color-mix(in srgb, var(--panel-text-color) 90%, rgba(244, 255, 253, 0.9));
+    font-weight: 600;
+    font-size: clamp(15px, 2.6vw, 17px);
+    letter-spacing: 0.06em;
   }
-  
-  .timer-cycle-item[data-state="active"] {
-    color: var(--ytp-text);
-    border-color: rgba(97,193,255,0.8);
-    transform: translateY(-2px);
-  }
-  
-  .timer-cycle-item[data-state="upnext"] {
-    border-color: rgba(97,193,255,0.4);
-  }
-  
+
   .timer-cycle-title {
     font-weight: 600;
+    color: color-mix(in srgb, var(--panel-text-color) 92%, rgba(244, 255, 253, 0.88));
   }
-  
+
   .timer-cycle-duration {
     font-size: 13px;
-    opacity: 0.8;
+    color: color-mix(in srgb, var(--panel-text-color) 68%, rgba(214, 227, 230, 0.78));
+  }
+
+  .timer-cycle-state {
+    color: color-mix(in srgb, var(--panel-text-color) 64%, rgba(209, 226, 229, 0.82));
+  }
+
+  .timer-cycle-item[data-state="active"] {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, rgba(148, 192, 178, 0.75) 80%, transparent);
+    box-shadow: 0 16px 32px rgba(12, 20, 26, 0.28);
+  }
+
+  .timer-cycle-item[data-state="active"] .timer-cycle-icon {
+    background: linear-gradient(135deg, rgba(148, 192, 178, 0.88), rgba(126, 176, 209, 0.82));
+    color: rgba(15, 28, 36, 0.92);
+    box-shadow: 0 10px 20px rgba(12, 20, 26, 0.32);
+  }
+
+  .timer-cycle-item[data-state="active"] .timer-cycle-state {
+    color: color-mix(in srgb, rgba(148, 192, 178, 0.9) 80%, rgba(244, 255, 253, 0.9));
+  }
+
+  .timer-cycle-item[data-state="upnext"] {
+    border-color: color-mix(in srgb, rgba(126, 176, 209, 0.65) 70%, transparent);
+  }
+
+  .timer-cycle-item[data-state="upnext"] .timer-cycle-icon {
+    background: color-mix(in srgb, rgba(126, 176, 209, 0.55) 70%, rgba(32, 42, 50, 0.65));
   }
   
   .timer-todo-section {
@@ -220,28 +209,21 @@
   .timer-todo-form input {
     flex: 1;
     padding: 10px 14px;
-    border-radius: var(--ytp-radius);
-    border: 1px solid var(--ytp-border);
-    background: rgba(12,14,19,0.9);
-    color: var(--ytp-text);
+    border-radius: var(--input-radius, 12px);
+    border: 1px solid color-mix(in srgb, var(--input-border-color) 80%, transparent);
+    background: color-mix(in srgb, var(--input-background) 70%, rgba(28, 36, 44, 0.72));
+    color: color-mix(in srgb, var(--panel-text-color) 92%, rgba(244, 255, 253, 0.85));
   }
   
-  .timer-todo-form input::placeholder { color: rgba(230,232,235,0.5); }
-  .timer-todo-form input:focus { outline: none; box-shadow: var(--ytp-focus); border-color: rgba(97,193,255,0.5); }
-  
-  .timer-todo-form button {
-    border: none;
-    border-radius: var(--ytp-radius);
-    padding: 10px 18px;
-    font-weight: 600;
-    cursor: pointer;
-    background: rgba(45,130,255,0.85);
-    color: #fff;
-    box-shadow: 0 10px 24px rgba(45,130,255,0.25);
+  .timer-todo-form input::placeholder {
+    color: color-mix(in srgb, var(--panel-text-color) 58%, rgba(210, 225, 232, 0.72));
   }
-  
-  .timer-todo-form button:hover { filter: brightness(1.04); }
-  .timer-todo-form button:focus { outline: none; box-shadow: var(--ytp-focus); }
+
+  .timer-todo-form input:focus {
+    outline: none;
+    box-shadow: var(--focus-ring-shadow, 0 0 0 2px rgba(148, 192, 178, 0.45));
+    border-color: color-mix(in srgb, rgba(148, 192, 178, 0.7) 70%, transparent);
+  }
   
   .timer-todo-list {
     display: grid;
@@ -249,13 +231,12 @@
   }
   
   .timer-todo-item {
-    background: rgba(10,12,16,0.9);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: var(--ytp-radius);
     padding: 12px 14px;
     display: flex;
+    flex-direction: row;
     align-items: center;
     gap: 14px;
+    color: color-mix(in srgb, var(--panel-text-color) 85%, rgba(236, 245, 248, 0.9));
   }
   
   .timer-todo-item[data-complete="true"] {
@@ -263,7 +244,7 @@
   }
   
   .timer-todo-checkbox {
-    accent-color: rgba(97,193,255,0.9);
+    accent-color: color-mix(in srgb, rgba(148, 192, 178, 0.9) 85%, rgba(126, 176, 209, 0.9));
     width: 20px;
     height: 20px;
     cursor: pointer;
@@ -273,28 +254,35 @@
     flex: 1;
     font-size: 15px;
     line-height: 1.4;
+    color: inherit;
   }
   
   .timer-todo-item[data-complete="true"] .timer-todo-text {
     text-decoration: line-through;
-    color: rgba(230,232,235,0.55);
+    color: color-mix(in srgb, var(--panel-text-color) 52%, rgba(200, 214, 220, 0.65));
   }
   
   .timer-todo-delete {
     background: transparent;
     border: none;
-    color: rgba(230,232,235,0.55);
+    color: color-mix(in srgb, var(--panel-text-color) 58%, rgba(203, 220, 226, 0.8));
     cursor: pointer;
     font-size: 18px;
     line-height: 1;
   }
   
-  .timer-todo-delete:hover { color: #ff6b6b; }
-  .timer-todo-delete:focus { outline: none; box-shadow: var(--ytp-focus); }
+  .timer-todo-delete:hover {
+    color: color-mix(in srgb, rgba(255, 148, 168, 0.85) 80%, rgba(244, 255, 253, 0.9));
+  }
+
+  .timer-todo-delete:focus {
+    outline: none;
+    box-shadow: var(--focus-ring-shadow, 0 0 0 2px rgba(148, 192, 178, 0.45));
+  }
   
   .timer-empty {
     font-size: 14px;
-    color: rgba(230,232,235,0.55);
+    color: color-mix(in srgb, var(--panel-text-color) 60%, rgba(210, 225, 232, 0.72));
     text-align: center;
     padding: 12px 0;
   }
@@ -302,414 +290,6 @@
   .timer-footer {
     padding: 14px 20px;
     font-size: 12px;
-    color: rgba(230,232,235,0.45);
     text-align: center;
-    border-top: 1px solid var(--ytp-border);
-    background: rgba(17,19,23,0.92);
-  }
-  
-  body.cozy-theme .timer-title,
-  body.cozy-theme .timer-phase-title {
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-    color: var(--cozy-plum-700);
-    letter-spacing: 0.04em;
-  }
-  
-  body.cozy-theme #timer-panel {
-    background: var(--cozy-paper);
-    color: var(--cozy-ink);
-    border-left: 1px solid rgba(59, 46, 42, 0.12);
-    border-radius: 24px 0 0 24px;
-    box-shadow: 0 24px 48px rgba(19, 10, 22, 0.38);
-    background-image:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(246, 234, 214, 0.96) 48%, rgba(233, 214, 189, 0.98)),
-      radial-gradient(120% 160% at 12% 8%, rgba(154, 209, 212, 0.16), transparent 55%),
-      radial-gradient(160% 120% at 88% 92%, rgba(134, 182, 184, 0.12), transparent 60%);
-    background-blend-mode: soft-light, normal, normal;
-    overflow: hidden;
-    isolation: isolate;
-  }
-  
-  body.cozy-theme #timer-panel {
-    visibility: hidden;
-    transition: transform 220ms ease, width 120ms ease, visibility 0s linear 220ms;
-  }
-  
-  body.cozy-theme #timer-panel.open {
-    visibility: visible;
-    transition: transform 220ms ease, width 120ms ease;
-  }
-  
-  body.cozy-theme #timer-panel .timer-phase-title {
-    font-size: 40px;
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.cozy-theme #timer-panel .timer-main {
-    background: linear-gradient(180deg, rgba(246, 234, 214, 0.34), rgba(176, 160, 188, 0.08));
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.cozy-theme #timer-panel .timer-hero {
-    background: rgba(255, 255, 255, 0.78);
-    border-bottom: 1px solid rgba(59, 46, 42, 0.14);
-  }
-  
-  body.cozy-theme #timer-panel .timer-phase-badge {
-    background: rgba(134, 182, 184, 0.26);
-    color: var(--cozy-plum-700);
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-    letter-spacing: 0.08em;
-  }
-  
-  body.cozy-theme #timer-panel .timer-phase-subtitle,
-  body.cozy-theme #timer-panel .timer-phase-meta {
-    color: rgba(59, 46, 42, 0.66);
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-    font-weight: 500;
-  }
-  
-  body.cozy-theme #timer-panel .timer-phase-meta span,
-  body.cozy-theme #timer-panel .timer-phase-meta strong {
-    font-family: inherit;
-  }
-  
-  body.cozy-theme #timer-panel .timer-countdown {
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-    color: var(--cozy-plum-700);
-    text-shadow: 0 2px 12px rgba(43, 31, 56, 0.25);
-  }
-  
-  body.cozy-theme #timer-panel .timer-progress-track {
-    background: rgba(59, 46, 42, 0.18);
-  }
-  
-  body.cozy-theme #timer-panel .timer-progress-bar {
-    background: linear-gradient(90deg, var(--cozy-accent), var(--cozy-accent-2));
-  }
-  
-  body.cozy-theme #timer-panel input,
-  body.cozy-theme #timer-panel select,
-  body.cozy-theme #timer-panel textarea,
-  body.cozy-theme #timer-panel .timer-controls button,
-  body.cozy-theme #timer-panel .timer-actions button,
-  body.cozy-theme #timer-panel .timer-todo-form button {
-    border-radius: 14px;
-    border: 1px solid rgba(59, 46, 42, 0.16);
-    background: rgba(255, 255, 255, 0.78);
-    color: var(--cozy-ink);
-    box-shadow: 0 8px 22px rgba(27, 19, 28, 0.15);
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.cozy-theme #timer-panel input,
-  body.cozy-theme #timer-panel select,
-  body.cozy-theme #timer-panel textarea {
-    padding: 8px 12px;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
-  }
-  
-  body.cozy-theme #timer-panel .timer-actions button,
-  body.cozy-theme #timer-panel .timer-controls button:not(.secondary),
-  body.cozy-theme #timer-panel .timer-todo-form button {
-    background: linear-gradient(140deg, var(--cozy-accent), var(--cozy-accent-2));
-    color: var(--cozy-ink);
-    border-color: rgba(59, 46, 42, 0.12);
-    box-shadow: 0 12px 26px rgba(27, 19, 28, 0.22);
-  }
-  
-  body.cozy-theme #timer-panel .timer-controls button.secondary {
-    background: rgba(255, 255, 255, 0.74);
-    color: var(--cozy-ink);
-    box-shadow: 0 10px 22px rgba(27, 19, 28, 0.14);
-  }
-  
-  body.cozy-theme #timer-panel .timer-close {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    color: rgba(59, 46, 42, 0.55);
-  }
-  
-  body.cozy-theme #timer-panel .timer-cycle-item,
-  body.cozy-theme #timer-panel .timer-todo-item {
-    color: var(--cozy-ink);
-  }
-  
-  body.cozy-theme #timer-panel .timer-cycle-item {
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(59, 46, 42, 0.16);
-    border-radius: 18px;
-    box-shadow: 0 14px 28px rgba(27, 19, 28, 0.16);
-  }
-  
-  body.cozy-theme #timer-panel .timer-cycle-item[data-state="active"] {
-    border-color: rgba(134, 182, 184, 0.6);
-    box-shadow: 0 18px 28px rgba(27, 19, 28, 0.22);
-  }
-  
-  body.cozy-theme #timer-panel .timer-cycle-item[data-state="upnext"] {
-    border-color: rgba(134, 182, 184, 0.32);
-  }
-  
-  body.cozy-theme #timer-panel .timer-cycle-title {
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-    color: var(--cozy-plum-700);
-    font-size: 17px;
-  }
-  
-  body.cozy-theme #timer-panel .timer-cycle-duration {
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-    color: rgba(59, 46, 42, 0.62);
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-title {
-    color: var(--cozy-plum-700);
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-form {
-    background: rgba(255, 255, 255, 0.8);
-    padding: 12px;
-    gap: 14px;
-    border-radius: 16px;
-    border: 1px solid rgba(59, 46, 42, 0.12);
-    box-shadow: 0 10px 22px rgba(27, 19, 28, 0.12);
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-form input {
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(59, 46, 42, 0.14);
-    color: var(--cozy-ink);
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-form input::placeholder {
-    color: rgba(59, 46, 42, 0.45);
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-item {
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(59, 46, 42, 0.12);
-    border-radius: 16px;
-    box-shadow: 0 12px 24px rgba(27, 19, 28, 0.16);
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-item .timer-todo-text {
-    color: var(--cozy-ink);
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-item[data-complete="true"] .timer-todo-text {
-    color: rgba(59, 46, 42, 0.5);
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-delete {
-    color: rgba(59, 46, 42, 0.45);
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-delete:hover {
-    color: var(--cozy-plum-700);
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-delete:focus-visible {
-    box-shadow: 0 0 0 2px rgba(154, 209, 212, 0.5);
-  }
-  
-  body.cozy-theme #timer-panel .timer-footer {
-    background: rgba(255, 255, 255, 0.82);
-    color: rgba(59, 46, 42, 0.68);
-    border-top: 1px solid rgba(59, 46, 42, 0.12);
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.cozy-theme #timer-panel .timer-todo-checkbox {
-    accent-color: var(--cozy-accent);
-  }
-  
-  body.theme-cozy-dark .timer-title,
-  body.theme-cozy-dark .timer-phase-title {
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-    color: rgba(154, 209, 212, 0.9);
-    letter-spacing: 0.04em;
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-main {
-    background: linear-gradient(180deg, rgba(37, 26, 50, 0.55), rgba(16, 10, 24, 0.92));
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-hero {
-    background: rgba(29, 20, 38, 0.82);
-    border-bottom: 1px solid var(--cozy-dark-border);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-phase-badge {
-    background: rgba(134, 182, 184, 0.3);
-    color: rgba(246, 234, 214, 0.96);
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-    letter-spacing: 0.08em;
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-phase-subtitle,
-  body.theme-cozy-dark #timer-panel .timer-phase-meta {
-    color: var(--cozy-dark-soft-muted);
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-    font-weight: 500;
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-countdown {
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-    color: rgba(154, 209, 212, 0.92);
-    text-shadow: 0 2px 18px rgba(8, 8, 16, 0.6);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-progress-track {
-    background: rgba(246, 234, 214, 0.18);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-progress-bar {
-    background: linear-gradient(90deg, rgba(134, 182, 184, 0.92), rgba(154, 209, 212, 0.85));
-  }
-  
-  body.theme-cozy-dark #timer-panel input,
-  body.theme-cozy-dark #timer-panel select,
-  body.theme-cozy-dark #timer-panel textarea,
-  body.theme-cozy-dark #timer-panel .timer-controls button,
-  body.theme-cozy-dark #timer-panel .timer-actions button,
-  body.theme-cozy-dark #timer-panel .timer-todo-form button {
-    border-radius: 16px;
-    border: 1px solid var(--cozy-dark-border-strong);
-    background: rgba(29, 20, 38, 0.78);
-    color: var(--cozy-dark-text);
-    box-shadow: 0 12px 28px rgba(19, 12, 24, 0.4);
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.theme-cozy-dark #timer-panel input,
-  body.theme-cozy-dark #timer-panel select,
-  body.theme-cozy-dark #timer-panel textarea {
-    padding: 8px 12px;
-    background: rgba(24, 16, 34, 0.82);
-    box-shadow: none;
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-actions button,
-  body.theme-cozy-dark #timer-panel .timer-controls button:not(.secondary),
-  body.theme-cozy-dark #timer-panel .timer-todo-form button {
-    background: linear-gradient(140deg, rgba(134, 182, 184, 0.88), rgba(134, 182, 184, 0.7));
-    color: #1f1426;
-    border-color: rgba(246, 234, 214, 0.3);
-    box-shadow: 0 16px 36px rgba(19, 12, 24, 0.45);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-controls button.secondary {
-    background: rgba(24, 16, 34, 0.82);
-    color: var(--cozy-dark-text);
-    border: 1px solid rgba(154, 209, 212, 0.3);
-    box-shadow: 0 12px 24px rgba(8, 8, 16, 0.45);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-close {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    color: rgba(246, 234, 214, 0.65);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-cycle-item,
-  body.theme-cozy-dark #timer-panel .timer-todo-item {
-    color: var(--cozy-dark-text);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-cycle-item {
-    background: rgba(24, 16, 34, 0.88);
-    border: 1px solid rgba(154, 209, 212, 0.24);
-    box-shadow: 0 18px 32px rgba(8, 8, 16, 0.42);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-cycle-item[data-state="active"] {
-    border-color: rgba(97,193,255,0.8);
-    transform: translateY(-2px);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-cycle-item[data-state="upnext"] {
-    border-color: rgba(97,193,255,0.4);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-cycle-title {
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-    color: rgba(154, 209, 212, 0.9);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-cycle-duration {
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
-    color: rgba(246, 234, 214, 0.65);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-title {
-    color: rgba(154, 209, 212, 0.9);
-    font-family: 'Patrick Hand', 'DM Sans', 'Segoe UI', sans-serif;
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-form {
-    background: rgba(24, 16, 34, 0.85);
-    padding: 12px;
-    gap: 14px;
-    border-radius: 16px;
-    border: 1px solid var(--cozy-dark-border-strong);
-    box-shadow: var(--cozy-dark-secondary-shadow);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-form input {
-    background: rgba(19, 12, 24, 0.82);
-    border: 1px solid rgba(154, 209, 212, 0.28);
-    color: var(--cozy-dark-text);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-form input::placeholder {
-    color: rgba(246, 234, 214, 0.45);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-form button {
-    box-shadow: 0 16px 32px rgba(19, 12, 24, 0.48);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-item {
-    border: 1px solid rgba(154, 209, 212, 0.24);
-    background: rgba(24, 16, 34, 0.88);
-    box-shadow: 0 18px 32px rgba(8, 8, 16, 0.42);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-item[data-complete="true"] .timer-todo-text {
-    color: rgba(246, 234, 214, 0.45);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-delete {
-    color: rgba(246, 234, 214, 0.58);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-delete:hover {
-    color: #f87373;
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-checkbox {
-    accent-color: rgba(154, 209, 212, 0.9);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-footer {
-    color: rgba(246, 234, 214, 0.55);
-    border-top: 1px solid rgba(154, 209, 212, 0.18);
-  }
-  
-  body.theme-cozy-dark #timer-panel .timer-todo-delete:focus-visible {
-    box-shadow: var(--cozy-dark-focus);
-  }
-  
-  body.theme-cozy-dark .timer-controls input[type="range"] {
-    accent-color: rgba(154, 209, 212, 0.85);
-  }
-  
-  body.cozy-theme .timer-controls input[type="range"] {
-    accent-color: var(--cozy-accent);
+    color: color-mix(in srgb, var(--panel-text-color) 55%, rgba(210, 223, 228, 0.72));
   }
