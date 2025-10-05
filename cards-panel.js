@@ -237,6 +237,8 @@
       const seed = escapeHtml(String(card.seed ?? ''));
       const hueInput = card.seed || card.id || card.title;
       const accentHue = seedHue(hueInput);
+      const layer = escapeHtml(card.layer || './assets/CardImages/3dLayer.png');
+      const texture = escapeHtml(card.texture || './assets/CardImages/card-texture.png');
       return `
         <article class="id-card" data-id="${escapeHtml(card.id||'')}" title="${title}" style="margin:12px auto; --accent-hue:${accentHue};">
           <div class="rotate-hint"><span class="arrow">↔</span>Drag to rotate • Double-click to flip</div>
@@ -244,11 +246,12 @@
             <div class="card-front">
               <div class="character-container">
                 <div class="scene-backdrop" aria-hidden="true"></div>
+                <div class="texture-layer"><img src="${texture}" alt=""></div>
                 <div class="character-layer">
                   <img class="pixel-avatar" src="${png}" alt="${title}" />
                 </div>
                 <div class="front-layer">
-                  <img class="front-layer1" src="./assets/CardImages/3dLayer.png" alt="" />
+                  <img class="front-layer1" src="${layer}" alt="" />
                 </div>
               </div>
               <div class="front-letters info">
@@ -256,8 +259,9 @@
               </div>
             </div>
             <div class="card-back">
+              <div class="texture-layer"><img src="${texture}" alt=""></div>
               <div class="back-layer">
-                <img class="back-layer1" src="./assets/CardImages/3dLayer.png" alt="" />
+                <img class="back-layer1" src="${layer}" alt="" />
               </div>
               <div class="back-letters info cozy-hand" style="padding:16px">
                 <div style="margin-bottom:6px">${escapeHtml(when)}</div>
@@ -285,7 +289,7 @@
               style="--accent-hue:${accentHue};">
         <div class="thumb-inner" aria-hidden="true"></div>
         ${png ? `<img class="thumb-img" src="${png}" alt="${title} thumbnail" loading="lazy">` : ''}
-        <img class="thumb-frame" src="./assets/CardImages/3dLayer.png" alt="" aria-hidden="true">
+        <img class="thumb-frame" src="${escapeHtml(card.layer || './assets/CardImages/3dLayer.png')}" alt="" aria-hidden="true">
       </button>
     `;
       }).join('');
