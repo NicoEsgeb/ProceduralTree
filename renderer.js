@@ -86,6 +86,7 @@ const controls = {
   gradientGroups: document.querySelectorAll('.gradient-group'),
   redrawBtn: document.querySelector('#redraw-btn'),
   randomizeTreeBtn: document.querySelector('#randomize-btn'),
+  genRandomCardBtn: document.querySelector('#gen-random-card-btn'),
   randomizeSeedBtn: document.querySelector('#randomize-seed-btn'),
   clearBtn: document.querySelector('#clear-btn'),
   savePresetBtn: document.querySelector('#save-preset-btn'),
@@ -598,6 +599,10 @@ function depthSortKey(t) {
 
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function makeId() {
+  return 'card_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
 }
 
 function randomFloat(min, max, precision = 2) {
@@ -1946,6 +1951,27 @@ controls.forestMode.addEventListener('change', () => {
 controls.redrawBtn.addEventListener('click', () => redrawFromLastPoint());
 controls.randomizeTreeBtn.addEventListener('click', () => randomizeTreeSettings());
 controls.randomizeSeedBtn.addEventListener('click', () => randomizeSeed());
+
+function generateRandomTreeCard() {
+  const n = Math.floor(Math.random() * 3) + 1; // 1..3
+  const payload = {
+    id: makeId(),
+    title: 'Random Tree',
+    // central image (the "tree" on the card)
+    png: `./assets/CardImages/tree${n}.png`,
+    pngHd: null,
+    seed: `preset-${n}`,
+    // NEW: pass per-card frame/texture so we can use them in the renderer next step
+    layer: `./assets/CardImages/3dLayer${n}.png`,
+    texture: `./assets/CardImages/card-texture${n}.png`,
+    createdAt: new Date().toISOString()
+  };
+  window.dispatchEvent(new CustomEvent('cards:new', { detail: payload }));
+}
+
+if (controls.genRandomCardBtn) {
+  controls.genRandomCardBtn.addEventListener('click', generateRandomTreeCard);
+}
 function clearCanvas() {
   completedSingleTree = null;
   // Stop master animation
@@ -2288,10 +2314,6 @@ window.TimerPanel?.ensureFab?.();
       console.warn('Card snapshot failed', e);
       return null;
     }
-  }
-
-  function makeId() {
-    return 'card_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
   }
 
   // Use the transparent snapshot instead of copying the live canvas
