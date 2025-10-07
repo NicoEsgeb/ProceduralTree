@@ -6,6 +6,10 @@
     function getActiveEmail(){
       try { return (JSON.parse(localStorage.getItem('ClickTreeAccount'))?.user?.email || '').toLowerCase(); } catch(_) { return ''; }
     }
+    function tabKey(){
+      const e = getActiveEmail();
+      return e ? `${TAB_STORAGE_KEY}::${e}` : TAB_STORAGE_KEY;
+    }
     function invKey(){
       const email = getActiveEmail();
       if (!email) return null;
@@ -19,11 +23,9 @@
 
     let panel, gridEl, emptyEl, closeBtn, viewerEl, actionsEl, tabBar, galleryTitleEl;
     let activeCategory = 'simple';
-    try { activeCategory = localStorage.getItem(TAB_STORAGE_KEY) || 'simple'; }
+    try { activeCategory = localStorage.getItem(tabKey()) || 'simple'; }
     catch(_) { activeCategory = 'simple'; }
-    if (activeCategory !== 'tree' && activeCategory !== 'simple') {
-      activeCategory = 'simple';
-    }
+    if (activeCategory !== 'tree') activeCategory = 'simple';
     let navWired = false;
   
     function ensurePanel(){
@@ -97,7 +99,7 @@
           const next = btn.getAttribute('data-tab') || 'simple';
           if (next === activeCategory) return;
           activeCategory = next;
-          try { localStorage.setItem(TAB_STORAGE_KEY, activeCategory); } catch(_) {}
+          try { localStorage.setItem(tabKey(), activeCategory); } catch(_) {}
           render();
         });
       }
@@ -230,6 +232,9 @@
       selectedId = loadSelected();
       pulledThisLogin = false;
       cloudPushedOnce = false;
+      try { activeCategory = localStorage.getItem(tabKey()) || 'simple'; }
+      catch(_) { activeCategory = 'simple'; }
+      if (activeCategory !== 'tree') activeCategory = 'simple';
       render();
       syncFromCloudOnce();
     });
@@ -607,6 +612,11 @@
       const owner = (getActiveEmail() || '');
       payload.ownerEmail = owner;
       payload.category = payload.category || 'simple';
+      const cat = (payload.category === 'tree') ? 'tree' : 'simple';
+      if (activeCategory !== cat) {
+        activeCategory = cat;
+        try { localStorage.setItem(tabKey(), activeCategory); } catch(_) {}
+      }
       cards.unshift(payload);
       save(cards);
       queueCloudPush();
