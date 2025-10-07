@@ -26,6 +26,7 @@ const defaultSettings = {
 // --- Dynamic card variants (manifest-first, fallback to auto-scan) ---
 let CARD_VARIANTS = [1, 2, 3]; // default until we detect more
 let CARD_VARIANT_NAMES = {};
+let CARD_DEFAULT_CATEGORY = 'tree';
 const nameForVariant = (n) => {
   const k = String(n);
   return CARD_VARIANT_NAMES[k] || `Tree #${n}`;
@@ -39,6 +40,9 @@ const nameForVariant = (n) => {
       const j = await res.json();
       if (j && j.names && typeof j.names === 'object') {
         CARD_VARIANT_NAMES = j.names;
+      }
+      if (j && typeof j.category === 'string' && j.category.trim()) {
+        CARD_DEFAULT_CATEGORY = j.category.trim().toLowerCase();
       }
       if (Array.isArray(j.variants) && j.variants.length) {
         CARD_VARIANTS = j.variants
@@ -2011,7 +2015,7 @@ function generateRandomTreeCard() {
     // NEW: pass per-card frame/texture so we can use them in the renderer next step
     layer: `./assets/CardImages/3dLayer${n}.png`,
     texture: `./assets/CardImages/card-texture${n}.png`,
-    category: 'tree',
+    category: CARD_DEFAULT_CATEGORY || 'tree',
     createdAt: new Date().toISOString()
   };
   window.dispatchEvent(new CustomEvent('cards:new', { detail: payload }));

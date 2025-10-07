@@ -20,12 +20,22 @@
       if (!email) return null;
       return `${BASE_SEL}::${email}`;
     }
+    const DEFAULT_CATEGORIES = ['simple','tree'];
+    const CATEGORY_LABEL = (c) => c === 'simple'
+      ? 'Simple Cards'
+      : (c.charAt(0).toUpperCase()+c.slice(1) + ' Cards');
+    let lastTabsKey = '';
+    function currentCategories() {
+      const fromInv = Array.from(new Set(load().map(c => (c?.category || 'simple'))));
+      return Array.from(new Set([...DEFAULT_CATEGORIES, ...fromInv]));
+    }
 
     let panel, gridEl, emptyEl, closeBtn, viewerEl, actionsEl, tabBar, galleryTitleEl;
     let activeCategory = 'simple';
-    try { activeCategory = localStorage.getItem(tabKey()) || 'simple'; }
-    catch(_) { activeCategory = 'simple'; }
-    if (activeCategory !== 'tree') activeCategory = 'simple';
+    try {
+      const storedTab = localStorage.getItem(tabKey());
+      if (typeof storedTab === 'string' && storedTab) activeCategory = storedTab;
+    } catch(_) { activeCategory = 'simple'; }
     let navWired = false;
   
     function ensurePanel(){
@@ -50,10 +60,7 @@
             </section>
             <section class="cards-gallery">
               <h2 id="cards-gallery-title" class="cards-title cozy-hand">Simple Cards</h2>
-              <div class="cards-tabs" role="tablist">
-                <button class="cards-tab" data-tab="simple">Simple Cards</button>
-                <button class="cards-tab" data-tab="tree">Tree Cards</button>
-              </div>
+              <div class="cards-tabs" role="tablist"></div>
               <div id="cards-empty" class="cards-empty cozy-hand">No cards yet. Finish a study session to mint your first card.</div>
               <div id="cards-grid" class="cards-grid" role="list"></div>
             </section>
@@ -91,18 +98,6 @@
         gridEl.dataset.hoverLightWired = '1';
       }
       wireHoverLight();
-      if (tabBar && !tabBar.dataset.wired) {
-        tabBar.dataset.wired = 'true';
-        tabBar.addEventListener('click', (ev) => {
-          const btn = ev.target.closest('.cards-tab');
-          if (!btn) return;
-          const next = btn.getAttribute('data-tab') || 'simple';
-          if (next === activeCategory) return;
-          activeCategory = next;
-          try { localStorage.setItem(tabKey(), activeCategory); } catch(_) {}
-          render();
-        });
-      }
       updateTabs();
       ensureNavWiring();
       return panel;
@@ -232,12 +227,36 @@
       selectedId = loadSelected();
       pulledThisLogin = false;
       cloudPushedOnce = false;
-      try { activeCategory = localStorage.getItem(tabKey()) || 'simple'; }
-      catch(_) { activeCategory = 'simple'; }
-      if (activeCategory !== 'tree') activeCategory = 'simple';
+      try {
+        const storedTab = localStorage.getItem(tabKey());
+        activeCategory = (typeof storedTab === 'string' && storedTab) ? storedTab : 'simple';
+      } catch(_) { activeCategory = 'simple'; }
       render();
       syncFromCloudOnce();
     });
+
+    function renderTabs() {
+      if (!tabBar) return;
+      const cats = currentCategories();
+      const key = cats.join('|');
+      if (key === lastTabsKey) return;
+      lastTabsKey = key;
+      tabBar.innerHTML = cats.map((c) => {
+        const value = String(c || '');
+        const safeValue = escapeHtml(value);
+        const safeLabel = escapeHtml(CATEGORY_LABEL(value));
+        return `<button class="cards-tab" role="tab" data-tab="${safeValue}">${safeLabel}</button>`;
+      }).join('');
+      tabBar.querySelectorAll('.cards-tab').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const next = btn.getAttribute('data-tab') || 'simple';
+          if (next === activeCategory) return;
+          activeCategory = next;
+          try { localStorage.setItem(tabKey(), activeCategory); } catch(_) {}
+          render();
+        });
+      });
+    }
 
     function updateTabs() {
       if (tabBar) {
@@ -245,10 +264,12 @@
           const isActive = (btn.getAttribute('data-tab') || '') === activeCategory;
           btn.classList.toggle('active', isActive);
           btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+          btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+          btn.setAttribute('tabindex', isActive ? '0' : '-1');
         });
       }
       if (galleryTitleEl) {
-        galleryTitleEl.textContent = activeCategory === 'tree' ? 'Tree Cards' : 'Simple Cards';
+        galleryTitleEl.textContent = CATEGORY_LABEL(activeCategory);
       }
     }
 
@@ -260,6 +281,11 @@
         if (emptyEl) emptyEl.style.display = 'none';
         if (actionsEl) actionsEl.style.display = 'none';
         if (tabBar) tabBar.style.display = 'none';
+        renderTabs();
+        if (!currentCategories().includes(activeCategory)) {
+          activeCategory = 'simple';
+          try { localStorage.setItem(tabKey(), activeCategory); } catch(_) {}
+        }
         updateTabs();
         viewerEl.innerHTML = `
           <div class="cards-viewer-empty">
@@ -276,6 +302,11 @@
       if (gridEl) gridEl.style.display = '';
       if (actionsEl) actionsEl.style.display = '';
       if (tabBar) tabBar.style.display = '';
+      renderTabs();
+      if (!currentCategories().includes(activeCategory)) {
+        activeCategory = 'simple';
+        try { localStorage.setItem(tabKey(), activeCategory); } catch(_) {}
+      }
       const view = cards.filter((c) => (((c && c.category) || 'simple') === activeCategory));
       if (emptyEl) emptyEl.style.display = view.length ? 'none' : 'block';
       const previousSelected = selectedId;
