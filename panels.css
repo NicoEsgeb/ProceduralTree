@@ -1399,6 +1399,32 @@ body.cozy-theme .panel-shell {
     border-radius: inherit;
     z-index: 3;                  /* Frame stays on top */
   }
+  #cards-panel .count-badge{
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    z-index: 4;
+  }
+  #cards-panel .card-slot {
+    display: grid;
+    place-items: center;
+    border-style: dashed;
+    opacity: .7;
+  }
+  #cards-panel .card-slot .slot-number {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 28px;
+    opacity: .9;
+  }
+  #cards-panel .card-slot:hover {
+    opacity: 1;
+  }
   #cards-panel .card-thumb:hover {
     transform: translateY(-2px);
     box-shadow: 0 0 0 4px rgba(45,130,255,0.35), 0 10px 26px rgba(0,0,0,0.45);

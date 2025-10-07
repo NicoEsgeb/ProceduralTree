@@ -32,26 +32,58 @@ const nameForVariant = (n) => {
   return CARD_VARIANT_NAMES[k] || `Tree #${n}`;
 };
 
-(async function detectCardVariants(){
-  // Try a simple manifest first: ./assets/CardImages/presets.json
+const exposeCardVariantGlobals = () => {
+  if (typeof window === 'undefined') return;
+  window.CARD_VARIANTS = CARD_VARIANTS;
+  window.CARD_VARIANT_NAMES = CARD_VARIANT_NAMES;
+  window.CARD_DEFAULT_CATEGORY = CARD_DEFAULT_CATEGORY;
+  window.nameForVariant = nameForVariant;
+};
+
+const dispatchCardVariantsReady = () => {
+  if (typeof window === 'undefined') return;
   try {
-    const res = await fetch('./assets/CardImages/presets.json', { cache: 'no-store' });
-    if (res.ok) {
-      const j = await res.json();
-      if (j && j.names && typeof j.names === 'object') {
-        CARD_VARIANT_NAMES = j.names;
-      }
-      if (j && typeof j.category === 'string' && j.category.trim()) {
-        CARD_DEFAULT_CATEGORY = j.category.trim().toLowerCase();
-      }
-      if (Array.isArray(j.variants) && j.variants.length) {
-        CARD_VARIANTS = j.variants
-          .map(v => parseInt(v, 10))
-          .filter(n => Number.isFinite(n) && n > 0);
-        return; // manifest wins
-      }
+    window.dispatchEvent(new CustomEvent('cards:variants-ready', {
+      detail: { variants: CARD_VARIANTS, names: CARD_VARIANT_NAMES }
+    }));
+  } catch (_) {}
+};
+
+(async function detectCardVariants(){
+  // Try a simple manifest first: ./assets/CardImages/presets.json, fallback to ./presets.json
+  const tryLoadManifest = async (path) => {
+    try {
+      const res = await fetch(path, { cache: 'no-store' });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (_) {
+      return null;
     }
-  } catch (_) { /* ignore and fallback */ }
+  };
+
+  let manifest = await tryLoadManifest('./assets/CardImages/presets.json');
+  if (!manifest) {
+    manifest = await tryLoadManifest('./presets.json');
+  }
+
+  if (manifest) {
+    if (manifest.names && typeof manifest.names === 'object') {
+      CARD_VARIANT_NAMES = manifest.names;
+    }
+    if (typeof manifest.category === 'string' && manifest.category.trim()) {
+      CARD_DEFAULT_CATEGORY = manifest.category.trim().toLowerCase();
+    }
+    let manifestProvidedVariants = false;
+    if (Array.isArray(manifest.variants) && manifest.variants.length) {
+      CARD_VARIANTS = manifest.variants
+        .map(v => parseInt(v, 10))
+        .filter(n => Number.isFinite(n) && n > 0);
+      manifestProvidedVariants = CARD_VARIANTS.length > 0;
+    }
+    exposeCardVariantGlobals();
+    dispatchCardVariantsReady();
+    if (manifestProvidedVariants) return; // manifest wins
+  }
 
   // Fallback: probe for ./assets/CardImages/treeN.png for N=1..64
   const MAX = 64;
@@ -64,6 +96,8 @@ const nameForVariant = (n) => {
   const results = await Promise.all(Array.from({ length: MAX }, (_, i) => check(i + 1)));
   const found = results.filter(n => n != null);
   if (found.length) CARD_VARIANTS = found;
+  exposeCardVariantGlobals();
+  dispatchCardVariantsReady();
 })();
 
 let forestDirty = false;                // draw forest layer only when it changes
@@ -2016,6 +2050,7 @@ function generateRandomTreeCard() {
     layer: `./assets/CardImages/3dLayer${n}.png`,
     texture: `./assets/CardImages/card-texture${n}.png`,
     category: CARD_DEFAULT_CATEGORY || 'tree',
+    variant: n,
     createdAt: new Date().toISOString()
   };
   window.dispatchEvent(new CustomEvent('cards:new', { detail: payload }));

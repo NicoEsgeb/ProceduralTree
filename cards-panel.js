@@ -97,7 +97,24 @@
         }, true);
         gridEl.dataset.hoverLightWired = '1';
       }
+      function wireGridClicks(){
+        if (!gridEl || gridEl.dataset.clickSelectionWired) return;
+        gridEl.addEventListener('click', (e) => {
+          const btn = e.target.closest('.card-thumb');
+          if (!btn || !gridEl.contains(btn)) return;
+          const id = btn.getAttribute('data-id');
+          if (!id) return;
+          const nextId = String(id);
+          if (nextId === String(selectedId)) return;
+          selectedId = nextId;
+          saveSelected(selectedId);
+          render();
+          setTimeout(scrollSelectedIntoView, 0);
+        });
+        gridEl.dataset.clickSelectionWired = '1';
+      }
       wireHoverLight();
+      wireGridClicks();
       updateTabs();
       ensureNavWiring();
       return panel;
@@ -308,7 +325,13 @@
         try { localStorage.setItem(tabKey(), activeCategory); } catch(_) {}
       }
       const view = cards.filter((c) => (((c && c.category) || 'simple') === activeCategory));
-      if (emptyEl) emptyEl.style.display = view.length ? 'none' : 'block';
+      if (emptyEl) {
+        if (activeCategory !== 'simple') {
+          emptyEl.style.display = 'none';
+        } else {
+          emptyEl.style.display = view.length ? 'none' : 'block';
+        }
+      }
       const previousSelected = selectedId;
       if (!view.some(c => String(c?.id) === String(selectedId))) {
         selectedId = String(view[0]?.id || '');
@@ -375,6 +398,74 @@
 
     function renderGrid(viewCards){
       if (!gridEl) return;
+      if (activeCategory !== 'simple') {
+        const variants = (window.CARD_VARIANTS || []);
+        const variantSource = Array.isArray(variants) ? variants : Object.keys(variants || {});
+        const variantNumbers = Array.from(new Set(variantSource
+          .map((value) => {
+            const num = Number(value);
+            return Number.isFinite(num) ? num : null;
+          })
+          .filter((num) => num !== null)));
+        variantNumbers.sort((a, b) => a - b);
+
+        const byVar = new Map();
+        (viewCards || []).forEach((card) => {
+          const variant = Number(card?.variant);
+          if (!Number.isFinite(variant)) return;
+          if (!byVar.has(variant)) byVar.set(variant, []);
+          byVar.get(variant).push(card);
+        });
+
+        const slots = variantNumbers.map((num) => {
+          const owned = byVar.get(num) || [];
+          const rawName = window.nameForVariant?.(num) || '';
+          const displayName = String(rawName || '').trim() || `Variant ${num}`;
+          const safeNum = escapeHtml(String(num));
+          const safeName = escapeHtml(displayName);
+          const ariaLabel = escapeHtml(`Variant ${num}: ${displayName}`);
+          if (!owned.length) {
+            return `
+      <button class="card-thumb card-slot" data-variant="${safeNum}" role="listitem" aria-selected="false" aria-label="Slot ${safeNum}: empty">
+        <span class="slot-number">${safeNum}</span>
+        <div class="m">Empty slot</div>
+      </button>`;
+          }
+
+          const rep = owned.reduce((latest, card) => {
+            if (!latest) return card;
+            const latestAt = new Date(latest.createdAt || 0).getTime() || 0;
+            const currentAt = new Date(card.createdAt || 0).getTime() || 0;
+            if (currentAt === latestAt) {
+              return (String(card.id || '') > String(latest.id || '')) ? card : latest;
+            }
+            return currentAt > latestAt ? card : latest;
+          }, null);
+          const repId = escapeHtml(String(rep?.id || ''));
+          const png = escapeHtml(rep?.png || '');
+          const texture = escapeHtml(rep?.texture || './assets/CardImages/card-texture.png');
+          const hueInput = rep?.seed || rep?.id || rep?.title;
+          const accentHue = seedHue(hueInput);
+          const count = owned.length;
+          const isSelected = owned.some((card) => String(card?.id) === String(selectedId));
+          const selectedClass = isSelected ? ' selected' : '';
+          const ariaSelected = isSelected ? 'true' : 'false';
+          const countLabel = escapeHtml(`×${count}`);
+          const title = escapeHtml(rep?.title || displayName);
+
+          return `
+      <button class="card-thumb${selectedClass}" data-id="${repId}" data-variant="${safeNum}" role="listitem" aria-selected="${ariaSelected}" aria-label="${ariaLabel}" title="${title}" style="--accent-hue:${accentHue};">
+        <div class="thumb-inner" aria-hidden="true"></div>
+        ${png ? `<img class="thumb-img" src="${png}" alt="${title} thumbnail" loading="lazy">` : ''}
+        ${texture ? `<img class="thumb-frame" src="${texture}" alt="" aria-hidden="true">` : ''}
+        <span class="count-badge">${countLabel}</span>
+        <div class="m">${safeName}</div>
+      </button>`;
+        }).join('');
+
+        gridEl.innerHTML = slots;
+        return;
+      }
       const thumbs = (viewCards || []).map((card) => {
         const id = escapeHtml(card.id||'');
         const title = escapeHtml(card.title||'');
@@ -712,6 +803,10 @@
     };
   
     // boot
-    ensurePanel(); render(); CardsPanel.ensureFab?.();
+    ensurePanel();
+    window.addEventListener('cards:variants-ready', () => {
+      if (activeCategory !== 'simple') render();
+    });
+    render(); CardsPanel.ensureFab?.();
     window.CardsPanel = CardsPanel;
   })();
