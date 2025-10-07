@@ -180,6 +180,24 @@
       }, 600);
     }
 
+    async function clearForActiveUser() {
+      const key = invKey();
+      if (!key) return false;
+      try {
+        localStorage.setItem(key, '[]');
+        saveSelected('');
+      } catch (_) {}
+
+      cards = [];
+      render();
+      queueCloudPush();
+
+      try { window.dispatchEvent(new StorageEvent('storage', { key })); }
+      catch (_) { window.dispatchEvent(new Event('storage')); }
+
+      return true;
+    }
+
     window.addEventListener('auth:changed', () => {
       migrateLegacy();
       cards = load();
@@ -601,7 +619,8 @@
       ensureFab: () => controller.ensureFab?.(),
       open: (opts={}) => controller.open(opts),
       close: (opts={}) => controller.close(opts),
-      toggle: () => controller.toggle()
+      toggle: () => controller.toggle(),
+      restoreInventory: () => clearForActiveUser()
     };
   
     // boot

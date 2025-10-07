@@ -148,6 +148,13 @@ const controls = {
   themeModeBtn: document.querySelector('#theme-mode-btn')
 };
 
+const restoreBtn = document.getElementById('restore-inventory-btn');
+restoreBtn?.addEventListener('click', async () => {
+  const ok = await window.CardsPanel?.restoreInventory?.();
+  if (ok) console.log('Inventory cleared for current account (cloud-synced).');
+  else console.log('No signed-in user; nothing to do.');
+});
+
 function readStoredTheme() {
   let theme = 'classic';
   let mode = THEME_DEFINITIONS.classic.defaultMode;
