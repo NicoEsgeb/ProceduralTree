@@ -1167,9 +1167,43 @@ body.cozy-theme .panel-shell {
         border: 1px solid var(--panel-border-color, var(--ytp-border));
       }
     #cards-panel .cards-viewer .id-card { margin: 0; }
-    #cards-panel .cards-viewer-empty {
-      width: 100%; height: 320px; border-radius: 14px; border: 3px solid var(--ytp-accent-2);
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    #cards-panel .cards-viewer-empty{
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 14px;
+      background: none;
+      display: grid;
+      place-items: center;
+      padding: 8px;
+    }
+
+    #cards-panel .viewer-placeholder{
+      text-align: center;
+      opacity: .95;
+    }
+
+    #cards-panel .viewer-placeholder .viewer-placeholder-glow{
+      font-family: 'Patrick Hand','DM Sans',sans-serif;
+      font-size: 22px;
+      letter-spacing: .02em;
+      background: linear-gradient(90deg, rgba(154,209,212,.95), rgba(196,154,204,.95), rgba(154,209,212,.95));
+      background-size: 200% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: cardsShimmer 2.4s linear infinite;
+    }
+
+    #cards-panel .viewer-placeholder small{
+      display:block;
+      margin-top:6px;
+      color: var(--ytp-text-dim);
+    }
+
+    @keyframes cardsShimmer{
+      0%{ background-position: 0% 50%; }
+      100%{ background-position: 200% 50%; }
     }
 /* Cards panel */
 #cards-panel .cards-grid {

@@ -428,7 +428,7 @@
             return `
       <button class="card-thumb card-slot" data-variant="${safeNum}" role="listitem" aria-selected="false" aria-label="Slot ${safeNum}: empty">
         <span class="slot-number">${safeNum}</span>
-        <div class="m">Empty slot</div>
+        <div class="m">Not Acquired</div>
       </button>`;
           }
 
@@ -490,7 +490,13 @@
     function renderViewer(){
       const card = cards.find(c => String(c.id) === String(selectedId));
       if (!card) {
-        viewerEl.innerHTML = `<div class="cards-viewer-empty"></div>`;
+        viewerEl.innerHTML = `
+      <div class="cards-viewer-empty">
+        <div class="viewer-placeholder">
+          <span class="viewer-placeholder-glow">Select a card to visualize</span>
+          <small>Tip: finish a study session to mint cards</small>
+        </div>
+      </div>`;
         return;
       }
       viewerEl.innerHTML = renderBigCard(card);
