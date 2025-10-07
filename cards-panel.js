@@ -2,6 +2,7 @@
     const PANEL_ID = 'cards';
     const BASE_INV = 'CardInventory.v1';
     const BASE_SEL = 'CardInventory.selectedId.v1';
+    const TAB_STORAGE_KEY = 'CardInventory.tab';
     function getActiveEmail(){
       try { return (JSON.parse(localStorage.getItem('ClickTreeAccount'))?.user?.email || '').toLowerCase(); } catch(_) { return ''; }
     }
@@ -16,7 +17,13 @@
       return `${BASE_SEL}::${email}`;
     }
 
-    let panel, gridEl, emptyEl, closeBtn, viewerEl, actionsEl;
+    let panel, gridEl, emptyEl, closeBtn, viewerEl, actionsEl, tabBar, galleryTitleEl;
+    let activeCategory = 'simple';
+    try { activeCategory = localStorage.getItem(TAB_STORAGE_KEY) || 'simple'; }
+    catch(_) { activeCategory = 'simple'; }
+    if (activeCategory !== 'tree' && activeCategory !== 'simple') {
+      activeCategory = 'simple';
+    }
     let navWired = false;
   
     function ensurePanel(){
@@ -40,7 +47,11 @@
               </div>
             </section>
             <section class="cards-gallery">
-              <h2 class="cards-title cozy-hand">Your trees</h2>
+              <h2 id="cards-gallery-title" class="cards-title cozy-hand">Simple Cards</h2>
+              <div class="cards-tabs" role="tablist">
+                <button class="cards-tab" data-tab="simple">Simple Cards</button>
+                <button class="cards-tab" data-tab="tree">Tree Cards</button>
+              </div>
               <div id="cards-empty" class="cards-empty cozy-hand">No cards yet. Finish a study session to mint your first card.</div>
               <div id="cards-grid" class="cards-grid" role="list"></div>
             </section>
@@ -54,6 +65,8 @@
       viewerEl = panel.querySelector('#cards-viewer');
       actionsEl = panel.querySelector('#cards-actions');
       closeBtn = panel.querySelector('#cards-close');
+      tabBar = panel.querySelector('.cards-tabs');
+      galleryTitleEl = panel.querySelector('#cards-gallery-title');
       closeBtn.addEventListener('click', () => CardsPanel.close());
       panel.addEventListener('keydown', (e) => { if (e.key === 'Escape') CardsPanel.close(); });
       function wireHoverLight(){
@@ -76,6 +89,19 @@
         gridEl.dataset.hoverLightWired = '1';
       }
       wireHoverLight();
+      if (tabBar && !tabBar.dataset.wired) {
+        tabBar.dataset.wired = 'true';
+        tabBar.addEventListener('click', (ev) => {
+          const btn = ev.target.closest('.cards-tab');
+          if (!btn) return;
+          const next = btn.getAttribute('data-tab') || 'simple';
+          if (next === activeCategory) return;
+          activeCategory = next;
+          try { localStorage.setItem(TAB_STORAGE_KEY, activeCategory); } catch(_) {}
+          render();
+        });
+      }
+      updateTabs();
       ensureNavWiring();
       return panel;
     }
@@ -208,6 +234,19 @@
       syncFromCloudOnce();
     });
 
+    function updateTabs() {
+      if (tabBar) {
+        tabBar.querySelectorAll('.cards-tab').forEach((btn) => {
+          const isActive = (btn.getAttribute('data-tab') || '') === activeCategory;
+          btn.classList.toggle('active', isActive);
+          btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+      }
+      if (galleryTitleEl) {
+        galleryTitleEl.textContent = activeCategory === 'tree' ? 'Tree Cards' : 'Simple Cards';
+      }
+    }
+
     function render(){
       if (!gridEl || !viewerEl) return;
       const email = getActiveEmail();
@@ -215,6 +254,8 @@
         if (gridEl) gridEl.style.display = 'none';
         if (emptyEl) emptyEl.style.display = 'none';
         if (actionsEl) actionsEl.style.display = 'none';
+        if (tabBar) tabBar.style.display = 'none';
+        updateTabs();
         viewerEl.innerHTML = `
           <div class="cards-viewer-empty">
             <p class="cozy-hand" style="font-size:18px;margin-bottom:12px;">Sign in to access your card collection</p>
@@ -229,13 +270,17 @@
       }
       if (gridEl) gridEl.style.display = '';
       if (actionsEl) actionsEl.style.display = '';
-      emptyEl.style.display = cards.length ? 'none' : 'block';
-      if (cards.length && !cards.some(c => String(c.id) === String(selectedId))) {
-        selectedId = String(cards[0].id || '');
-        saveSelected(selectedId);
+      if (tabBar) tabBar.style.display = '';
+      const view = cards.filter((c) => (((c && c.category) || 'simple') === activeCategory));
+      if (emptyEl) emptyEl.style.display = view.length ? 'none' : 'block';
+      const previousSelected = selectedId;
+      if (!view.some(c => String(c?.id) === String(selectedId))) {
+        selectedId = String(view[0]?.id || '');
+        if (previousSelected !== selectedId) saveSelected(selectedId);
       }
-      renderGrid();
+      renderGrid(view);
       renderViewer();
+      updateTabs();
     }
 
     function seedHue(seed){
@@ -292,8 +337,9 @@
       `;
     }
 
-    function renderGrid(){
-      const thumbs = cards.map((card) => {
+    function renderGrid(viewCards){
+      if (!gridEl) return;
+      const thumbs = (viewCards || []).map((card) => {
         const id = escapeHtml(card.id||'');
         const title = escapeHtml(card.title||'');
         const png = escapeHtml(card.png||'');
@@ -560,6 +606,7 @@
       if (!payload || !payload.id) return;
       const owner = (getActiveEmail() || '');
       payload.ownerEmail = owner;
+      payload.category = payload.category || 'simple';
       cards.unshift(payload);
       save(cards);
       queueCloudPush();

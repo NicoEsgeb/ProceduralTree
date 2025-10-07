@@ -2011,6 +2011,7 @@ function generateRandomTreeCard() {
     // NEW: pass per-card frame/texture so we can use them in the renderer next step
     layer: `./assets/CardImages/3dLayer${n}.png`,
     texture: `./assets/CardImages/card-texture${n}.png`,
+    category: 'tree',
     createdAt: new Date().toISOString()
   };
   window.dispatchEvent(new CustomEvent('cards:new', { detail: payload }));
@@ -2375,6 +2376,7 @@ window.TimerPanel?.ensureFab?.();
       png: previewPng,
       pngHd: hdPng || null,
       seed: (window.clickTree?.settings?.seed ?? ''),
+      category: 'simple',
       createdAt: new Date().toISOString()
     };
     window.dispatchEvent(new CustomEvent('cards:new', { detail: payload }));

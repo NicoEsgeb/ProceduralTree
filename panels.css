@@ -1139,6 +1139,25 @@ body.cozy-theme .panel-shell {
         font-weight: 700;
         font-size: var(--heading-font-size);
       }
+    #cards-panel .cards-tabs{
+      display:flex;
+      gap:8px;
+      justify-content:center;
+      padding:8px 12px;
+    }
+    #cards-panel .cards-tab{
+      border-radius:12px;
+      border:1px solid var(--panel-border-color);
+      background:var(--input-background,#1a1f27);
+      color:var(--panel-text-color,#e5e7eb);
+      padding:6px 12px;
+      cursor:pointer;
+    }
+    #cards-panel .cards-tab.active{
+      background:var(--ytp-accent-2);
+      color:#fff;
+      border-color:transparent;
+    }
       #cards-panel .cards-viewer {
         min-height: 340px;
         display: grid;
@@ -1238,6 +1257,19 @@ body.cozy-theme .panel-shell {
     letter-spacing: var(--heading-letter-spacing);
   }
 
+  body.theme-cozy-light #cards-panel .cards-tab {
+    background: rgba(255,255,255,0.92);
+    border: 1px solid rgba(59,46,42,0.16);
+    color: var(--cozy-ink);
+    box-shadow: 0 10px 20px rgba(27,19,28,0.12);
+  }
+
+  body.theme-cozy-light #cards-panel .cards-tab.active {
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 16px 30px rgba(45,130,255,0.22);
+  }
+
   body.theme-cozy-light #cards-panel .cards-viewer {
     position: relative;
     background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(246,234,214,0.96) 60%, rgba(233,214,189,0.98));
@@ -1293,6 +1325,20 @@ body.cozy-theme .panel-shell {
     font-family: var(--heading-font-family);
     color: rgba(154,209,212,0.92);
     letter-spacing: var(--heading-letter-spacing);
+  }
+
+  body.theme-cozy-dark #cards-panel .cards-tab {
+    background: var(--cozy-dark-surface-soft);
+    border: 1px solid var(--cozy-dark-border);
+    color: var(--cozy-dark-text);
+    box-shadow: 0 10px 24px rgba(19,12,24,0.32);
+  }
+
+  body.theme-cozy-dark #cards-panel .cards-tab.active {
+    background: var(--ytp-accent-2);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 18px 32px rgba(45,130,255,0.32);
   }
 
   body.theme-cozy-dark #cards-panel .cards-viewer {
