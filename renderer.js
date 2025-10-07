@@ -23,6 +23,45 @@ const defaultSettings = {
   }
 };
 
+// --- Dynamic card variants (manifest-first, fallback to auto-scan) ---
+let CARD_VARIANTS = [1, 2, 3]; // default until we detect more
+let CARD_VARIANT_NAMES = {};
+const nameForVariant = (n) => {
+  const k = String(n);
+  return CARD_VARIANT_NAMES[k] || `Tree #${n}`;
+};
+
+(async function detectCardVariants(){
+  // Try a simple manifest first: ./assets/CardImages/presets.json
+  try {
+    const res = await fetch('./assets/CardImages/presets.json', { cache: 'no-store' });
+    if (res.ok) {
+      const j = await res.json();
+      if (j && j.names && typeof j.names === 'object') {
+        CARD_VARIANT_NAMES = j.names;
+      }
+      if (Array.isArray(j.variants) && j.variants.length) {
+        CARD_VARIANTS = j.variants
+          .map(v => parseInt(v, 10))
+          .filter(n => Number.isFinite(n) && n > 0);
+        return; // manifest wins
+      }
+    }
+  } catch (_) { /* ignore and fallback */ }
+
+  // Fallback: probe for ./assets/CardImages/treeN.png for N=1..64
+  const MAX = 64;
+  const check = (n) => new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => resolve(n);
+    img.onerror = () => resolve(null);
+    img.src = `./assets/CardImages/tree${n}.png`;
+  });
+  const results = await Promise.all(Array.from({ length: MAX }, (_, i) => check(i + 1)));
+  const found = results.filter(n => n != null);
+  if (found.length) CARD_VARIANTS = found;
+})();
+
 let forestDirty = false;                // draw forest layer only when it changes
 const DEBUG_LOG = false;                // disable per-frame console logs
 
@@ -1953,10 +1992,11 @@ controls.randomizeTreeBtn.addEventListener('click', () => randomizeTreeSettings(
 controls.randomizeSeedBtn.addEventListener('click', () => randomizeSeed());
 
 function generateRandomTreeCard() {
-  const n = Math.floor(Math.random() * 3) + 1; // 1..3
+  const n = CARD_VARIANTS[Math.floor(Math.random() * CARD_VARIANTS.length)];
   const payload = {
     id: makeId(),
-    title: 'Random Tree',
+    title: nameForVariant(n),
+    treeName: nameForVariant(n),
     // central image (the "tree" on the card)
     png: `./assets/CardImages/tree${n}.png`,
     pngHd: null,

@@ -44,6 +44,9 @@
   height:100%;
   margin:0;
   transform-style:preserve-3d;
+  display:flex;
+  justify-content:center;
+  align-items:center;
 }
 
 /* Inner backdrop behind the tree, above the card texture */
