@@ -1139,6 +1139,7 @@ body.cozy-theme .panel-shell {
         font-weight: 700;
         font-size: var(--heading-font-size);
       }
+    #cards-panel { --viewer-height: 460px; } /* fallback */
     #cards-panel .cards-tabs{
       display:flex;
       gap:8px;
@@ -1159,7 +1160,7 @@ body.cozy-theme .panel-shell {
       border-color:transparent;
     }
       #cards-panel .cards-viewer {
-        min-height: 340px;
+        min-height: var(--viewer-height);
         display: grid;
         place-items: center;
         padding: 10px 12px;
@@ -1168,11 +1169,11 @@ body.cozy-theme .panel-shell {
       }
     #cards-panel .cards-viewer .id-card { margin: 0; }
     #cards-panel .cards-viewer-empty{
-      width: 100%;
+      min-height: var(--viewer-height);
       height: 100%;
       border: none;
       border-radius: 14px;
-      background: none;
+      background: var(--panel-surface, #0f1115);
       display: grid;
       place-items: center;
       padding: 8px;
@@ -1455,6 +1456,16 @@ body.cozy-theme .panel-shell {
     font-family: 'Patrick Hand', cursive;
     font-size: 28px;
     opacity: .9;
+  }
+  #cards-panel .card-slot .m {
+    font-size: 12px;
+    opacity: .85;
+    text-align: center;
+  }
+  #cards-panel .card-slot .s {
+    font-size: 11px;
+    opacity: .65;
+    text-align: center;
   }
   #cards-panel .card-slot:hover {
     opacity: 1;

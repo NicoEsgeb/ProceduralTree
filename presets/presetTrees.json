@@ -1,0 +1,13 @@
+{
+  "category": "tree",
+  "variants": [1, 2, 3, 4, 5, 6, 7],
+  "names": {
+    "1": "Araucaria Araucana",
+    "2": "Dragon Blood Tree",
+    "3": "Sakura",
+    "4": "Baobab",
+    "5": "Sequoia",
+    "6": "Rainbow Eucalyptus",
+    "7": "Strangler fig"
+  }
+}

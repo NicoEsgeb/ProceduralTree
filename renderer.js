@@ -23,81 +23,86 @@ const defaultSettings = {
   }
 };
 
-// --- Dynamic card variants (manifest-first, fallback to auto-scan) ---
-let CARD_VARIANTS = [1, 2, 3]; // default until we detect more
-let CARD_VARIANT_NAMES = {};
+// --- Category-aware card variants/names ---
 let CARD_DEFAULT_CATEGORY = 'tree';
-const nameForVariant = (n) => {
-  const k = String(n);
-  return CARD_VARIANT_NAMES[k] || `Tree #${n}`;
-};
+let CARD_VARIANTS_BY_CATEGORY = { tree: [1, 2, 3] };
+let CARD_NAMES_BY_CATEGORY = { tree: {} };
 
-const exposeCardVariantGlobals = () => {
+function getVariantsForCategory(cat) {
+  const k = String(cat || CARD_DEFAULT_CATEGORY).toLowerCase();
+  return CARD_VARIANTS_BY_CATEGORY[k] || [];
+}
+function nameForVariantIn(cat, n) {
+  const k = String(cat || CARD_DEFAULT_CATEGORY).toLowerCase();
+  const names = CARD_NAMES_BY_CATEGORY[k] || {};
+  return names[String(n)] || `${k.charAt(0).toUpperCase() + k.slice(1)} #${n}`;
+}
+
+// Back-compat for old callers:
+function nameForVariant(n) { return nameForVariantIn(CARD_DEFAULT_CATEGORY, n); }
+
+(function expose() {
   if (typeof window === 'undefined') return;
-  window.CARD_VARIANTS = CARD_VARIANTS;
-  window.CARD_VARIANT_NAMES = CARD_VARIANT_NAMES;
+  window.getVariantsForCategory = getVariantsForCategory;
+  window.nameForVariantIn = nameForVariantIn;
   window.CARD_DEFAULT_CATEGORY = CARD_DEFAULT_CATEGORY;
-  window.nameForVariant = nameForVariant;
-};
-
-const dispatchCardVariantsReady = () => {
-  if (typeof window === 'undefined') return;
-  try {
-    window.dispatchEvent(new CustomEvent('cards:variants-ready', {
-      detail: { variants: CARD_VARIANTS, names: CARD_VARIANT_NAMES }
-    }));
-  } catch (_) {}
-};
+})();
 
 (async function detectCardVariants(){
-  // Try a simple manifest first: ./assets/CardImages/presets.json, fallback to ./presets.json
-  const tryLoadManifest = async (path) => {
-    try {
-      const res = await fetch(path, { cache: 'no-store' });
-      if (!res.ok) return null;
-      return await res.json();
-    } catch (_) {
-      return null;
+  async function tryJson(path){
+    try { const r = await fetch(path, { cache:'no-store' }); return r.ok ? r.json() : null; }
+    catch { return null; }
+  }
+  async function loadCategory(cat, paths, fallbackProbePrefix){
+    for (const p of paths){
+      const m = await tryJson(p);
+      if (m){
+        if (!CARD_NAMES_BY_CATEGORY[cat]) CARD_NAMES_BY_CATEGORY[cat] = {};
+        if (m.names && typeof m.names==='object') CARD_NAMES_BY_CATEGORY[cat] = m.names;
+        if (typeof m.category==='string') CARD_DEFAULT_CATEGORY = m.category.trim().toLowerCase() || cat;
+        if (Array.isArray(m.variants) && m.variants.length){
+          CARD_VARIANTS_BY_CATEGORY[cat] = m.variants.map(v=>parseInt(v,10)).filter(n=>Number.isFinite(n)&&n>0);
+          console.log('[cards] loaded', cat, 'from', p,
+            'variants=', (CARD_VARIANTS_BY_CATEGORY[cat]||[]).length,
+            'names=', Object.keys(CARD_NAMES_BY_CATEGORY[cat]||{}).length);
+          return;
+        }
+      }
     }
-  };
-
-  let manifest = await tryLoadManifest('./assets/CardImages/presets.json');
-  if (!manifest) {
-    manifest = await tryLoadManifest('./presets.json');
+    // Fallback: probe numbered PNGs if asked
+    if (fallbackProbePrefix){
+      const MAX = 64;
+      const checks = Array.from({length:MAX},(_,i)=>i+1).map(n=>new Promise(res=>{
+        const img = new Image();
+        img.onload = ()=>res(n);
+        img.onerror = ()=>res(null);
+        img.src = `${fallbackProbePrefix}${n}.png`;
+      }));
+      const found = (await Promise.all(checks)).filter(Boolean);
+      if (found.length) CARD_VARIANTS_BY_CATEGORY[cat] = found;
+    }
   }
 
-  if (manifest) {
-    if (manifest.names && typeof manifest.names === 'object') {
-      CARD_VARIANT_NAMES = manifest.names;
-    }
-    if (typeof manifest.category === 'string' && manifest.category.trim()) {
-      CARD_DEFAULT_CATEGORY = manifest.category.trim().toLowerCase();
-    }
-    let manifestProvidedVariants = false;
-    if (Array.isArray(manifest.variants) && manifest.variants.length) {
-      CARD_VARIANTS = manifest.variants
-        .map(v => parseInt(v, 10))
-        .filter(n => Number.isFinite(n) && n > 0);
-      manifestProvidedVariants = CARD_VARIANTS.length > 0;
-    }
-    exposeCardVariantGlobals();
-    dispatchCardVariantsReady();
-    if (manifestProvidedVariants) return; // manifest wins
-  }
+  // TREE (current behavior)
+  await loadCategory('tree',
+    ['./presets/presetTrees.json','./presetCards/presetTrees.json','./assets/CardImages/presets.json'],
+    './assets/CardImages/tree');
 
-  // Fallback: probe for ./assets/CardImages/treeN.png for N=1..64
-  const MAX = 64;
-  const check = (n) => new Promise(resolve => {
-    const img = new Image();
-    img.onload = () => resolve(n);
-    img.onerror = () => resolve(null);
-    img.src = `./assets/CardImages/tree${n}.png`;
-  });
-  const results = await Promise.all(Array.from({ length: MAX }, (_, i) => check(i + 1)));
-  const found = results.filter(n => n != null);
-  if (found.length) CARD_VARIANTS = found;
-  exposeCardVariantGlobals();
-  dispatchCardVariantsReady();
+  // MINERAL (new). Accept both presets.json and preset.json.
+  await loadCategory('mineral',
+    ['./presets/presetMinerals.json','./presetCards/presetMinerals.json','./assets/MineralCardImages/presets.json','./assets/MineralCardImages/preset.json'],
+    './assets/MineralCardImages/mineral');
+
+  // Make old globals still reflect the default category
+  if (typeof window!=='undefined'){
+    window.CARD_VARIANTS = getVariantsForCategory(CARD_DEFAULT_CATEGORY);
+    window.CARD_VARIANT_NAMES = CARD_NAMES_BY_CATEGORY[CARD_DEFAULT_CATEGORY] || {};
+    window.nameForVariant = nameForVariant; // kept earlier
+    window.CARD_DEFAULT_CATEGORY = CARD_DEFAULT_CATEGORY;
+    window.dispatchEvent(new CustomEvent('cards:variants-ready', {
+      detail: { byCategory: CARD_VARIANTS_BY_CATEGORY, names: CARD_NAMES_BY_CATEGORY }
+    }));
+  }
 })();
 
 let forestDirty = false;                // draw forest layer only when it changes
@@ -164,6 +169,7 @@ const controls = {
   redrawBtn: document.querySelector('#redraw-btn'),
   randomizeTreeBtn: document.querySelector('#randomize-btn'),
   genRandomCardBtn: document.querySelector('#gen-random-card-btn'),
+  genRandomMineralCardBtn: document.querySelector('#gen-random-mineral-card-btn'),
   randomizeSeedBtn: document.querySelector('#randomize-seed-btn'),
   clearBtn: document.querySelector('#clear-btn'),
   savePresetBtn: document.querySelector('#save-preset-btn'),
@@ -2037,11 +2043,14 @@ controls.randomizeTreeBtn.addEventListener('click', () => randomizeTreeSettings(
 controls.randomizeSeedBtn.addEventListener('click', () => randomizeSeed());
 
 function generateRandomTreeCard() {
-  const n = CARD_VARIANTS[Math.floor(Math.random() * CARD_VARIANTS.length)];
+  const variants = getVariantsForCategory('tree');
+  const pool = variants.length ? variants : [1];
+  const n = pool[Math.floor(Math.random() * pool.length)];
+  const title = nameForVariantIn('tree', n);
   const payload = {
     id: makeId(),
-    title: nameForVariant(n),
-    treeName: nameForVariant(n),
+    title,
+    treeName: title,
     // central image (the "tree" on the card)
     png: `./assets/CardImages/tree${n}.png`,
     pngHd: null,
@@ -2049,7 +2058,27 @@ function generateRandomTreeCard() {
     // NEW: pass per-card frame/texture so we can use them in the renderer next step
     layer: `./assets/CardImages/3dLayer${n}.png`,
     texture: `./assets/CardImages/card-texture${n}.png`,
-    category: CARD_DEFAULT_CATEGORY || 'tree',
+    category: 'tree',
+    variant: n,
+    createdAt: new Date().toISOString()
+  };
+  window.dispatchEvent(new CustomEvent('cards:new', { detail: payload }));
+}
+
+function generateRandomMineralCard() {
+  const variants = getVariantsForCategory('mineral');
+  const pool = variants.length ? variants : [1];
+  const n = pool[Math.floor(Math.random() * pool.length)];
+  const title = nameForVariantIn('mineral', n);
+  const payload = {
+    id: makeId(),
+    title,
+    png: `./assets/MineralCardImages/mineral${n}.png`,
+    pngHd: null,
+    seed: `mineral-${n}`,
+    layer: `./assets/MineralCardImages/3dLayer${n}.png`,
+    texture: `./assets/MineralCardImages/card-texture${n}.png`,
+    category: 'mineral',
     variant: n,
     createdAt: new Date().toISOString()
   };
@@ -2058,6 +2087,9 @@ function generateRandomTreeCard() {
 
 if (controls.genRandomCardBtn) {
   controls.genRandomCardBtn.addEventListener('click', generateRandomTreeCard);
+}
+if (controls.genRandomMineralCardBtn) {
+  controls.genRandomMineralCardBtn.addEventListener('click', generateRandomMineralCard);
 }
 function clearCanvas() {
   completedSingleTree = null;

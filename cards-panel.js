@@ -20,7 +20,7 @@
       if (!email) return null;
       return `${BASE_SEL}::${email}`;
     }
-    const DEFAULT_CATEGORIES = ['simple','tree'];
+    const DEFAULT_CATEGORIES = ['simple','tree','mineral'];
     const CATEGORY_LABEL = (c) => c === 'simple'
       ? 'Simple Cards'
       : (c.charAt(0).toUpperCase()+c.slice(1) + ' Cards');
@@ -399,7 +399,9 @@
     function renderGrid(viewCards){
       if (!gridEl) return;
       if (activeCategory !== 'simple') {
-        const variants = (window.CARD_VARIANTS || []);
+        const variants = (window.getVariantsForCategory
+          ? window.getVariantsForCategory(activeCategory)
+          : (window.CARD_VARIANTS || []));
         const variantSource = Array.isArray(variants) ? variants : Object.keys(variants || {});
         const variantNumbers = Array.from(new Set(variantSource
           .map((value) => {
@@ -419,16 +421,20 @@
 
         const slots = variantNumbers.map((num) => {
           const owned = byVar.get(num) || [];
-          const rawName = window.nameForVariant?.(num) || '';
+          const rawName = (window.nameForVariantIn
+            ? window.nameForVariantIn(activeCategory, num)
+            : (window.nameForVariant?.(num) || ''));
           const displayName = String(rawName || '').trim() || `Variant ${num}`;
           const safeNum = escapeHtml(String(num));
           const safeName = escapeHtml(displayName);
           const ariaLabel = escapeHtml(`Variant ${num}: ${displayName}`);
           if (!owned.length) {
             return `
-      <button class="card-thumb card-slot" data-variant="${safeNum}" role="listitem" aria-selected="false" aria-label="Slot ${safeNum}: empty">
+      <button class="card-thumb card-slot" data-variant="${safeNum}" role="listitem"
+        aria-selected="false" aria-label="${ariaLabel} (not acquired)">
         <span class="slot-number">${safeNum}</span>
-        <div class="m">Not Acquired</div>
+        <div class="m">${safeName}</div>
+        <div class="s">Not acquired</div>
       </button>`;
           }
 
@@ -501,7 +507,29 @@
       }
       viewerEl.innerHTML = renderBigCard(card);
       const big = viewerEl.querySelector('.id-card');
-      if (big) attachInteractions(big);
+      if (big) {
+        attachInteractions(big);
+
+        function setViewerHeightFromCard() {
+          const cardEl = viewerEl.querySelector('.id-card');
+          if (!cardEl) return;
+          const cs = getComputedStyle(cardEl);
+          const mt = parseFloat(cs.marginTop) || 0;
+          const mb = parseFloat(cs.marginBottom) || 0;
+          const h = Math.ceil(cardEl.getBoundingClientRect().height + mt + mb);
+          // apply to the viewer; inherited by empty state
+          viewerEl.style.setProperty('--viewer-height', `${h}px`);
+        }
+
+        setViewerHeightFromCard();
+
+        if (!viewerEl.__viewerHeightResizeHandler) {
+          viewerEl.__viewerHeightResizeHandler = () => {
+            if (viewerEl.querySelector('.id-card')) setViewerHeightFromCard();
+          };
+          window.addEventListener('resize', viewerEl.__viewerHeightResizeHandler, { passive: true });
+        }
+      }
     }
 
     function scrollSelectedIntoView() {
@@ -739,8 +767,8 @@
       if (!payload || !payload.id) return;
       const owner = (getActiveEmail() || '');
       payload.ownerEmail = owner;
-      payload.category = payload.category || 'simple';
-      const cat = (payload.category === 'tree') ? 'tree' : 'simple';
+      payload.category = (payload.category || 'simple').toLowerCase();
+      const cat = payload.category;
       if (activeCategory !== cat) {
         activeCategory = cat;
         try { localStorage.setItem(tabKey(), activeCategory); } catch(_) {}

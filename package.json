@@ -32,7 +32,9 @@
       "auth-controller.js",
       "auth/**/*",
       "vendor/**/*",
-      "assets/**/*"
+      "assets/**/*",
+      "presets/**/*",
+      "presetCards/**/*"
     ],
     "directories": {
       "buildResources": "assets"
