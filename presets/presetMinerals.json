@@ -1,7 +1,11 @@
 {
   "category": "mineral",
-  "variants": [1],
+  "variants": [1, 2, 3, 4, 5],
   "names": {
-    "1": "Amethyst"
+    "1": "Amethyst",
+    "2": "Pyrite",
+    "3": "Quartz",
+    "4": "Citrine",
+    "5": "Blue Fluorite"
   }
 }
